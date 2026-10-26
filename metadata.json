@@ -1,8 +1,0 @@
-{
-  "name": "Remix QuickBus SG",
-  "description": "Minimalist Singapore bus arrival and transit app with live LTA DataMall API integration, offline bus stop search, and Material 3 design.",
-  "requestFramePermissions": [],
-  "majorCapabilities": [
-    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
-  ]
-}
