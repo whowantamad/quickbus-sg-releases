@@ -43,14 +43,14 @@ class NextBusInfo {
 
   factory NextBusInfo.fromJson(Map<String, dynamic> json) {
     return NextBusInfo(
-      estimatedArrival: json['EstimatedArrival'] as String?,
-      load: json['Load'] as String?,
-      feature: json['Feature'] as String?,
-      type: json['Type'] as String?,
-      originCode: json['OriginCode'] as String?,
-      destinationCode: json['DestinationCode'] as String?,
-      latitude: json['Latitude'] as String?,
-      longitude: json['Longitude'] as String?,
+      estimatedArrival: json['EstimatedArrival']?.toString(),
+      load: json['Load']?.toString(),
+      feature: json['Feature']?.toString(),
+      type: json['Type']?.toString(),
+      originCode: json['OriginCode']?.toString(),
+      destinationCode: json['DestinationCode']?.toString(),
+      latitude: json['Latitude']?.toString(),
+      longitude: json['Longitude']?.toString(),
     );
   }
 
@@ -123,15 +123,15 @@ class BusArrivalService {
 
   factory BusArrivalService.fromJson(Map<String, dynamic> json) {
     return BusArrivalService(
-      serviceNo: json['ServiceNo'] as String? ?? '',
-      operator: json['Operator'] as String? ?? '',
-      nextBus: json['NextBus'] != null
+      serviceNo: json['ServiceNo']?.toString().trim() ?? '',
+      operator: json['Operator']?.toString().trim() ?? '',
+      nextBus: json['NextBus'] is Map<String, dynamic>
           ? NextBusInfo.fromJson(json['NextBus'] as Map<String, dynamic>)
           : null,
-      nextBus2: json['NextBus2'] != null
+      nextBus2: json['NextBus2'] is Map<String, dynamic>
           ? NextBusInfo.fromJson(json['NextBus2'] as Map<String, dynamic>)
           : null,
-      nextBus3: json['NextBus3'] != null
+      nextBus3: json['NextBus3'] is Map<String, dynamic>
           ? NextBusInfo.fromJson(json['NextBus3'] as Map<String, dynamic>)
           : null,
     );

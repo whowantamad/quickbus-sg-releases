@@ -55,6 +55,7 @@ class LtaApiService {
   }
 
   final String? accountKey;
+  bool lastFetchIsLive = false;
 
   LtaApiService({this.accountKey});
 
@@ -83,6 +84,7 @@ class LtaApiService {
         if (response.statusCode == 200) {
           final data = jsonDecode(response.body) as Map<String, dynamic>;
           final servicesList = data['Services'] as List<dynamic>? ?? [];
+          lastFetchIsLive = true;
           return servicesList
               .map((s) => BusArrivalService.fromJson(s as Map<String, dynamic>))
               .toList();
@@ -92,6 +94,7 @@ class LtaApiService {
       }
     }
 
+    lastFetchIsLive = false;
     return _generateSimulatedArrivals(busStopCode, stopServices: stopServices);
   }
 
@@ -121,18 +124,11 @@ class LtaApiService {
         );
       }
 
-      final seed = (busStopCode.hashCode + svc.hashCode).abs();
-      // Deterministic ~12% chance of "No Est. Available" during operating hours for realism
-      if (seed % 9 == 0) {
-        return BusArrivalService(
-          serviceNo: svc,
-          operator: svc.length > 2 ? 'SMRT' : 'SBST',
-        );
-      }
+      final seed = _stableSeed('$busStopCode:$svc');
 
-      final min1 = (seed % 7);
-      final min2 = min1 + (seed % 8) + 5;
-      final min3 = min2 + 9;
+      final min1 = (seed % 6);
+      final min2 = min1 + (seed % 5) + 6;
+      final min3 = min2 + (seed % 6) + 8;
 
       const loadTypes = ['SEA', 'SDA', 'LSD'];
       const deckTypes = ['SD', 'DD'];
@@ -160,5 +156,13 @@ class LtaApiService {
         ),
       );
     }).toList();
+  }
+
+  static int _stableSeed(String input) {
+    var hash = 0;
+    for (final unit in input.codeUnits) {
+      hash = ((hash * 31) + unit) & 0x7fffffff;
+    }
+    return hash;
   }
 }

@@ -22,9 +22,12 @@ class _BusStopDetailScreenState extends State<BusStopDetailScreen> {
   List<BusArrivalService> _services = [];
   List<String> _starredServices = [];
   bool _isLoading = true;
+  bool _isRefreshing = false;
   bool _isStarred = false;
   String _searchQuery = '';
-  Timer? _refreshTimer;
+  DateTime? _lastUpdatedAt;
+  int _secondsUntilRefresh = 0;
+  Timer? _tickerTimer;
   UserSettings _settings = const UserSettings();
 
   @override
@@ -36,17 +39,18 @@ class _BusStopDetailScreenState extends State<BusStopDetailScreen> {
 
   @override
   void dispose() {
-    _refreshTimer?.cancel();
+    _tickerTimer?.cancel();
     super.dispose();
   }
 
   Future<void> _initForStop(BusStop stop) async {
-    _refreshTimer?.cancel();
+    _tickerTimer?.cancel();
     setState(() {
       _currentStop = stop;
       // Offline-first: render all services for this stop immediately at 0ms
       _services = TransitDbService.buildOfflineServices(stop);
       _isLoading = true;
+      _lastUpdatedAt = null;
     });
 
     await FavoritesService.recordStopOpen(stop.code);
@@ -60,28 +64,92 @@ class _BusStopDetailScreenState extends State<BusStopDetailScreen> {
         _settings = settings;
         _isStarred = starred;
         _starredServices = starredSvcs;
+        _secondsUntilRefresh = settings.autoRefreshSeconds;
       });
     }
 
     await _fetchArrivals(silent: false);
-    _startTimer();
+    _startTicker();
   }
 
-  void _startTimer() {
-    _refreshTimer?.cancel();
-    if (_settings.autoRefreshSeconds <= 0) return;
-    _refreshTimer = Timer.periodic(
-      Duration(seconds: _settings.autoRefreshSeconds),
-      (_) {
-        if (mounted) _fetchArrivals(silent: true);
-      },
+  void _startTicker() {
+    _tickerTimer?.cancel();
+    _tickerTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      final now = DateTime.now();
+      final elapsed = _lastUpdatedAt != null
+          ? now.difference(_lastUpdatedAt!).inSeconds
+          : 0;
+      final interval = _settings.autoRefreshSeconds;
+
+      if (interval > 0) {
+        final remaining = (interval - elapsed).clamp(0, interval);
+        setState(() {
+          _secondsUntilRefresh = remaining;
+        });
+        if (remaining == 0 && !_isRefreshing && !_isLoading) {
+          _fetchArrivals(silent: true);
+        }
+      } else {
+        setState(() {
+          _secondsUntilRefresh = 0;
+        });
+      }
+    });
+  }
+
+  void _showRefreshToast(bool isLive) {
+    if (!mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.clearSnackBars();
+    messenger.showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        duration: const Duration(milliseconds: 1800),
+        backgroundColor: const Color(0xFF0F172A),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+        ),
+        content: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.check_circle_rounded,
+              size: 16,
+              color: isLive
+                  ? const Color(0xFF10B981)
+                  : const Color(0xFFF59E0B),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                isLive
+                    ? 'Arrivals up to date · Live LTA DataMall'
+                    : 'Arrivals updated · Offline Schedule Sim',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
-  Future<void> _fetchArrivals({bool silent = false}) async {
-    if (!silent && mounted) {
-      setState(() => _isLoading = true);
-    }
+  Future<void> _fetchArrivals({
+    bool silent = false,
+    bool showToast = false,
+  }) async {
+    if (!mounted) return;
+    setState(() {
+      if (!silent) _isLoading = true;
+      _isRefreshing = true;
+    });
 
     final api = LtaApiService(accountKey: _settings.datamallKey);
     final liveList = await api.getBusArrivals(
@@ -121,7 +189,13 @@ class _BusStopDetailScreenState extends State<BusStopDetailScreen> {
       setState(() {
         _services = expanded;
         _isLoading = false;
+        _isRefreshing = false;
+        _lastUpdatedAt = DateTime.now();
+        _secondsUntilRefresh = _settings.autoRefreshSeconds;
       });
+      if (showToast) {
+        _showRefreshToast(api.lastFetchIsLive);
+      }
     }
   }
 
@@ -242,7 +316,8 @@ class _BusStopDetailScreenState extends State<BusStopDetailScreen> {
               _currentStop.road,
               style: TextStyle(
                 fontSize: 11,
-                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                color:
+                    theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
               ),
               overflow: TextOverflow.ellipsis,
             ),
@@ -262,7 +337,7 @@ class _BusStopDetailScreenState extends State<BusStopDetailScreen> {
         children: [
           // Filter services search bar
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
             child: TextField(
               onChanged: (val) => setState(() => _searchQuery = val),
               style: const TextStyle(fontSize: 12),
@@ -289,13 +364,34 @@ class _BusStopDetailScreenState extends State<BusStopDetailScreen> {
             ),
           ),
 
+          // Right-aligned small faded countdown text ("Updating in 30s")
+          if (_settings.autoRefreshSeconds > 0 || _isRefreshing)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 2, 20, 2),
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: Text(
+                  _isRefreshing
+                      ? 'Updating...'
+                      : 'Updating in ${_secondsUntilRefresh}s',
+                  style: TextStyle(
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.w500,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                    color: theme.colorScheme.onSurfaceVariant
+                        .withValues(alpha: 0.45),
+                  ),
+                ),
+              ),
+            ),
+
           // Pull-Down to Refresh Bus Services List
           Expanded(
             child: RefreshIndicator(
               color: const Color(0xFFE11D48),
               onRefresh: () async {
                 final start = DateTime.now();
-                await _fetchArrivals(silent: true);
+                await _fetchArrivals(silent: true, showToast: true);
                 final elapsed = DateTime.now().difference(start).inMilliseconds;
                 if (elapsed < 500) {
                   await Future.delayed(Duration(milliseconds: 500 - elapsed));
@@ -316,7 +412,7 @@ class _BusStopDetailScreenState extends State<BusStopDetailScreen> {
                     )
                   : ListView.builder(
                       physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.only(top: 4, bottom: 28),
+                      padding: const EdgeInsets.only(top: 2, bottom: 28),
                       itemCount: filtered.length,
                       itemBuilder: (context, index) {
                         final svc = filtered[index];

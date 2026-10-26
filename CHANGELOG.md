@@ -2,6 +2,21 @@
 
 All notable changes to **QuickBus SG** are documented in this file.
 
+## [1.0.3+4] - 2026-10-25
+
+### Added & Changed
+- **Auto-Refresh Countdown & Pull-to-Refresh Toast (`bus_stop_detail_screen.dart`)**:
+  - Added a subtle right-aligned `"Updating in Xs"` countdown timer above the bus arrivals list.
+  - Added a floating confirmation toast (`"Arrivals up to date · Live LTA DataMall"` / `"Arrivals updated · Offline Schedule Sim"`) when pulling down to refresh.
+- **Arrival Parsing & Simulation Fixes (`lta_api_service.dart`, `bus_arrival.dart`)**:
+  - Removed the artificial 1-in-9 `"No Est. Available"` simulation drop and replaced platform-dependent `.hashCode` with a deterministic cross-platform hash.
+  - Hardened JSON parsing in `BusArrivalService.fromJson` and `NextBusInfo.fromJson` using safe `.toString()` conversions.
+  - Separated `flutter_project/.env` and `flutter_project/.env.example` into independent files so `.env.example` never overwrites `.env`.
+- **Prebuilt Android Release APKs (`releases/`)**:
+  - Added `v1.0.3` APKs (`arm64-v8a`, `armeabi-v7a`, and combined ARM) alongside preserved `v1.0.2`, `v1.0.1`, and `v1.0.0` APKs.
+
+---
+
 ## [1.0.2+3] - 2026-10-25
 
 ### Changed
