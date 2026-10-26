@@ -98,7 +98,7 @@ class _BusStopDetailScreenState extends State<BusStopDetailScreen> {
     });
   }
 
-  void _showRefreshToast(bool isLive) {
+  void _showRefreshToast() {
     if (!mounted) return;
     final messenger = ScaffoldMessenger.of(context);
     messenger.clearSnackBars();
@@ -112,23 +112,19 @@ class _BusStopDetailScreenState extends State<BusStopDetailScreen> {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(14),
         ),
-        content: Row(
+        content: const Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               Icons.check_circle_rounded,
               size: 16,
-              color: isLive
-                  ? const Color(0xFF10B981)
-                  : const Color(0xFFF59E0B),
+              color: Color(0xFF10B981),
             ),
-            const SizedBox(width: 8),
+            SizedBox(width: 8),
             Expanded(
               child: Text(
-                isLive
-                    ? 'Arrivals up to date · Live LTA DataMall'
-                    : 'Arrivals updated · Offline Schedule Sim',
-                style: const TextStyle(
+                'Arrival data updated',
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                   color: Colors.white,
@@ -194,7 +190,7 @@ class _BusStopDetailScreenState extends State<BusStopDetailScreen> {
         _secondsUntilRefresh = _settings.autoRefreshSeconds;
       });
       if (showToast) {
-        _showRefreshToast(api.lastFetchIsLive);
+        _showRefreshToast();
       }
     }
   }

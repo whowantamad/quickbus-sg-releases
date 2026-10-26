@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import '../models/bus_stop.dart';
 import '../services/transit_db_service.dart';
 import '../widgets/stop_list_item.dart';
@@ -38,6 +39,9 @@ class _NearbyScreenState extends State<NearbyScreen> {
   ];
 
   String _selectedHub = 'City Hall';
+  bool _isLocating = false;
+  bool _usingGps = false;
+  String? _geoError;
   List<BusStop> _stops = [];
 
   @override
@@ -50,8 +54,84 @@ class _NearbyScreenState extends State<NearbyScreen> {
     final nearest = TransitDbService.getNearestStops(hub.lat, hub.lng, limit: 15);
     setState(() {
       _selectedHub = hub.name;
+      _usingGps = false;
+      _geoError = null;
       _stops = nearest;
     });
+  }
+
+  Future<void> _handleUseGps() async {
+    if (_isLocating) return;
+    setState(() {
+      _isLocating = true;
+      _geoError = null;
+    });
+
+    try {
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        if (mounted) {
+          setState(() {
+            _isLocating = false;
+            _geoError = 'Location services disabled';
+          });
+        }
+        return;
+      }
+
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          if (mounted) {
+            setState(() {
+              _isLocating = false;
+              _geoError = 'GPS access denied';
+            });
+          }
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        if (mounted) {
+          setState(() {
+            _isLocating = false;
+            _geoError = 'GPS access permanently denied';
+          });
+        }
+        return;
+      }
+
+      final pos = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          timeLimit: Duration(seconds: 8),
+        ),
+      );
+
+      final nearest = TransitDbService.getNearestStops(
+        pos.latitude,
+        pos.longitude,
+        limit: 15,
+      );
+
+      if (mounted) {
+        setState(() {
+          _selectedHub = 'GPS';
+          _usingGps = true;
+          _isLocating = false;
+          _stops = nearest;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _isLocating = false;
+          _geoError = 'GPS access denied';
+        });
+      }
+    }
   }
 
   @override
@@ -62,27 +142,63 @@ class _NearbyScreenState extends State<NearbyScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Top Header
+        // Top Header with GPS Locate Button
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
           child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Icon(
-                Icons.near_me_rounded,
-                size: 18,
-                color: Color(0xFFE11D48),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.near_me_rounded,
+                    size: 18,
+                    color: Color(0xFFE11D48),
+                  ),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Nearby',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    '· $_selectedHub',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 8),
-              const Text(
-                'Nearby',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
-              ),
-              const SizedBox(width: 6),
-              Text(
-                '· $_selectedHub',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: theme.colorScheme.onSurfaceVariant,
+              Material(
+                color: _usingGps
+                    ? const Color(0xFF059669)
+                    : const Color(0xFFE11D48),
+                shape: const CircleBorder(),
+                elevation: 1,
+                child: InkWell(
+                  onTap: _handleUseGps,
+                  customBorder: const CircleBorder(),
+                  child: SizedBox(
+                    width: 34,
+                    height: 34,
+                    child: Center(
+                      child: _isLocating
+                          ? const SizedBox(
+                              width: 15,
+                              height: 15,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(
+                              Icons.my_location_rounded,
+                              size: 16,
+                              color: Colors.white,
+                            ),
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -99,7 +215,7 @@ class _NearbyScreenState extends State<NearbyScreen> {
             separatorBuilder: (_, __) => const SizedBox(width: 6),
             itemBuilder: (context, idx) {
               final hub = _hubs[idx];
-              final active = _selectedHub == hub.name;
+              final active = _selectedHub == hub.name && !_usingGps;
               return InkWell(
                 onTap: () => _selectHub(hub),
                 borderRadius: BorderRadius.circular(12),
@@ -130,6 +246,51 @@ class _NearbyScreenState extends State<NearbyScreen> {
             },
           ),
         ),
+
+        // GPS Error Banner
+        if (_geoError != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? const Color(0xFF78350F).withValues(alpha: 0.25)
+                    : const Color(0xFFFFFBEB),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isDark
+                      ? const Color(0xFF92400E).withValues(alpha: 0.5)
+                      : const Color(0xFFFDE68A),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.error_outline_rounded,
+                    size: 15,
+                    color: isDark
+                        ? const Color(0xFFFBBF24)
+                        : const Color(0xFFB45309),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _geoError!,
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w600,
+                        color: isDark
+                            ? const Color(0xFFFCD34D)
+                            : const Color(0xFFB45309),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
         const SizedBox(height: 8),
 
         // Bus Stop Cards List
