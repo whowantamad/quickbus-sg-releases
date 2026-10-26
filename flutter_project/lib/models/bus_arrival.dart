@@ -19,28 +19,6 @@ class NextBusInfo {
     this.longitude,
   });
 
-  NextBusInfo copyWith({
-    String? estimatedArrival,
-    String? load,
-    String? feature,
-    String? type,
-    String? originCode,
-    String? destinationCode,
-    String? latitude,
-    String? longitude,
-  }) {
-    return NextBusInfo(
-      estimatedArrival: estimatedArrival ?? this.estimatedArrival,
-      load: load ?? this.load,
-      feature: feature ?? this.feature,
-      type: type ?? this.type,
-      originCode: originCode ?? this.originCode,
-      destinationCode: destinationCode ?? this.destinationCode,
-      latitude: latitude ?? this.latitude,
-      longitude: longitude ?? this.longitude,
-    );
-  }
-
   factory NextBusInfo.fromJson(Map<String, dynamic> json) {
     return NextBusInfo(
       estimatedArrival: json['EstimatedArrival']?.toString(),

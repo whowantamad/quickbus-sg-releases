@@ -9,3 +9,4 @@ When the user requests to build or release an APK:
    Do not build split-per-abi APKs (`arm64-v8a` or `armeabi-v7a`).
 
 2. **Retention Policy**: In `releases/`, keep at most the 5 most recent universal APK builds (`ls -t releases/*.apk | sed -e '1,5d' | xargs -r rm`). Prune any older APK beyond the 5 most recent.
+

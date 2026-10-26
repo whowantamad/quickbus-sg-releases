@@ -65,7 +65,25 @@ class _NearbyScreenState extends State<NearbyScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && _waitingForSettingsReturn) {
       _waitingForSettingsReturn = false;
-      _handleUseGps();
+      _checkAndResumeGps();
+    }
+  }
+
+  Future<void> _checkAndResumeGps() async {
+    try {
+      final permission = await Geolocator.checkPermission();
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (permission != LocationPermission.denied &&
+          permission != LocationPermission.deniedForever &&
+          serviceEnabled) {
+        _handleUseGps();
+      } else if (mounted) {
+        setState(() {
+          _isLocating = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLocating = false);
     }
   }
 
@@ -170,10 +188,6 @@ class _NearbyScreenState extends State<NearbyScreen>
       }
 
       if (permission == LocationPermission.deniedForever) {
-        if (!kIsWeb) {
-          _waitingForSettingsReturn = true;
-          await Geolocator.openAppSettings();
-        }
         if (mounted) {
           setState(() {
             _isLocating = false;
@@ -213,7 +227,6 @@ class _NearbyScreenState extends State<NearbyScreen>
       // 3. Request high-accuracy position.
       //    On Android, if device GPS is off, FusedLocationClient automatically triggers
       //    the native system resolution dialog ("Turn on device location?").
-      final promptStartMs = DateTime.now().millisecondsSinceEpoch;
       Position? pos;
 
       try {
@@ -224,12 +237,6 @@ class _NearbyScreenState extends State<NearbyScreen>
           ),
         );
       } on LocationServiceDisabledException {
-        final elapsedMs = DateTime.now().millisecondsSinceEpoch - promptStartMs;
-        // If the inline system dialog couldn't be shown by Play Services, open Location Settings
-        if (!kIsWeb && elapsedMs < 1200) {
-          _waitingForSettingsReturn = true;
-          await Geolocator.openLocationSettings();
-        }
         if (mounted) {
           setState(() {
             _isLocating = false;
@@ -250,12 +257,6 @@ class _NearbyScreenState extends State<NearbyScreen>
       } catch (e) {
         final errStr = e.toString();
         if (errStr.contains('LOCATION_SERVICES_DISABLED')) {
-          final elapsedMs =
-              DateTime.now().millisecondsSinceEpoch - promptStartMs;
-          if (!kIsWeb && elapsedMs < 1200) {
-            _waitingForSettingsReturn = true;
-            await Geolocator.openLocationSettings();
-          }
           if (mounted) {
             setState(() {
               _isLocating = false;

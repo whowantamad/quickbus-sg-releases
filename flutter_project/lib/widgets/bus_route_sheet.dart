@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/bus_stop.dart';
 import '../services/transit_db_service.dart';
 
-class BusRouteSheet extends StatelessWidget {
+class BusRouteSheet extends StatefulWidget {
   final String serviceNo;
   final String? currentStopCode;
   final int? initialDirection;
@@ -16,15 +16,33 @@ class BusRouteSheet extends StatelessWidget {
     required this.onSelectStop,
   });
 
-  int _resolveActiveDirection(BusRouteInfo routeInfo) {
-    if (initialDirection != null) return initialDirection!;
-    if (currentStopCode != null &&
+  @override
+  State<BusRouteSheet> createState() => _BusRouteSheetState();
+}
+
+class _BusRouteSheetState extends State<BusRouteSheet> {
+  int? _activeDirection;
+
+  @override
+  void initState() {
+    super.initState();
+    final routeInfo = TransitDbService.getBusRouteAndSchedule(
+      widget.serviceNo,
+      stopCode: widget.currentStopCode,
+      loopWing: widget.initialDirection,
+    );
+    _activeDirection = _resolveInitialDirection(routeInfo);
+  }
+
+  int _resolveInitialDirection(BusRouteInfo routeInfo) {
+    if (widget.initialDirection != null) return widget.initialDirection!;
+    if (widget.currentStopCode != null &&
         routeInfo.direction2Stops != null &&
         routeInfo.direction2Stops!.isNotEmpty) {
       final idx1 = routeInfo.direction1Stops
-          .indexWhere((s) => s.code == currentStopCode);
+          .indexWhere((s) => s.code == widget.currentStopCode);
       final idx2 = routeInfo.direction2Stops!
-          .indexWhere((s) => s.code == currentStopCode);
+          .indexWhere((s) => s.code == widget.currentStopCode);
       if ((idx2 != -1 && idx1 == -1) ||
           (idx1 == routeInfo.direction1Stops.length - 1 && idx2 == 0)) {
         return 2;
@@ -39,11 +57,13 @@ class BusRouteSheet extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     final routeInfo = TransitDbService.getBusRouteAndSchedule(
-      serviceNo,
-      stopCode: currentStopCode,
-      loopWing: initialDirection,
+      widget.serviceNo,
+      stopCode: widget.currentStopCode,
+      loopWing: widget.initialDirection,
     );
-    final activeDir = _resolveActiveDirection(routeInfo);
+    final activeDir = _activeDirection ?? _resolveInitialDirection(routeInfo);
+    final hasTwoDirections = routeInfo.direction2Stops != null &&
+        routeInfo.direction2Stops!.isNotEmpty;
     final activeStops = activeDir == 1
         ? routeInfo.direction1Stops
         : (routeInfo.direction2Stops ?? routeInfo.direction1Stops);
@@ -62,10 +82,10 @@ class BusRouteSheet extends StatelessWidget {
             : routeInfo.direction1Name);
 
     final scheduleStopCode =
-        currentStopCode ?? (activeStops.isNotEmpty ? activeStops.first.code : null);
+        widget.currentStopCode ?? (activeStops.isNotEmpty ? activeStops.first.code : null);
     final scheduleStop = TransitDbService.getStopByCode(scheduleStopCode);
     final schedule = TransitDbService.getStopServiceSchedule(
-      serviceNo,
+      widget.serviceNo,
       stopCode: scheduleStopCode,
       loopWing: activeDir,
     );
@@ -103,7 +123,7 @@ class BusRouteSheet extends StatelessWidget {
                   ),
                   alignment: Alignment.center,
                   child: Text(
-                    serviceNo,
+                    widget.serviceNo,
                     style: TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w900,
@@ -178,6 +198,28 @@ class BusRouteSheet extends StatelessWidget {
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
+                // Direction Toggle (when 2 directions exist)
+                if (hasTwoDirections) ...[
+                  Row(
+                    children: [
+                      _buildDirectionChip(
+                        isDark,
+                        direction: 1,
+                        label: 'To ${routeInfo.direction1Name}',
+                        active: activeDir == 1,
+                      ),
+                      const SizedBox(width: 8),
+                      _buildDirectionChip(
+                        isDark,
+                        direction: 2,
+                        label: 'To ${routeInfo.direction2Name ?? routeInfo.origin}',
+                        active: activeDir == 2,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                ],
+
                 // Operating Schedule Card (without redundant Frequency header span)
                 Container(
                   padding: const EdgeInsets.all(14),
@@ -286,7 +328,7 @@ class BusRouteSheet extends StatelessWidget {
                 // Sequential Route Stop Timeline
                 ...activeStops.asMap().entries.map((entry) {
                   final stop = entry.value;
-                  final isCurrent = stop.code == currentStopCode;
+                  final isCurrent = stop.code == widget.currentStopCode;
 
                   return Container(
                     margin: const EdgeInsets.only(bottom: 6),
@@ -307,7 +349,7 @@ class BusRouteSheet extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                       onTap: () {
                         Navigator.of(context).pop();
-                        onSelectStop(stop);
+                        widget.onSelectStop(stop);
                       },
                       child: Padding(
                         padding: const EdgeInsets.symmetric(
@@ -411,6 +453,45 @@ class BusRouteSheet extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildDirectionChip(
+    bool isDark, {
+    required int direction,
+    required String label,
+    required bool active,
+  }) {
+    return Expanded(
+      child: InkWell(
+        onTap: () => setState(() => _activeDirection = direction),
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+          decoration: BoxDecoration(
+            color: active
+                ? const Color(0xFFE11D48)
+                : (isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9)),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: active
+                  ? const Color(0xFFE11D48)
+                  : (isDark ? Colors.white10 : Colors.black12),
+            ),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              color: active ? Colors.white : null,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
       ),
     );
   }

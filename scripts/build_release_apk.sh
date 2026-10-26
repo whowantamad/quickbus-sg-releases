@@ -25,3 +25,4 @@ cd "$RELEASES_DIR"
 ls -t *.apk | sed -e '1,5d' | xargs -r rm -f --
 echo "Current APKs retained in releases/:"
 ls -lh *.apk
+

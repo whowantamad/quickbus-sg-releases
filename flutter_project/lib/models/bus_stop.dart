@@ -59,18 +59,6 @@ class BusStop {
           const [],
     );
   }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'code': code,
-      'name': name,
-      'road': road,
-      'lat': lat,
-      'lng': lng,
-      if (mrtNearby != null) 'mrtNearby': mrtNearby,
-      'services': services,
-    };
-  }
 }
 
 class FavoriteStop {

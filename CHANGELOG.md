@@ -2,6 +2,28 @@
 
 All notable changes to **QuickBus SG** are documented in this file.
 
+## [1.0.5+6] - 2026-10-26
+
+### Fixed & Improved
+- **GPS Permission & Settings Bounce Loop (`nearby_screen.dart`)**:
+  - Prevented automatic recursive navigation into Android Settings when returning to the app without granting GPS permission.
+- **Pull-to-Refresh & API Error Feedback (`bus_stop_detail_screen.dart`, `lta_api_service.dart`)**:
+  - Displayed honest error indicators and toasts on network timeouts or HTTP 401/403/500 responses instead of false success toasts.
+- **Resource & Battery Optimization (`bus_stop_detail_screen.dart`)**:
+  - Halted idle 1-second countdown ticker when auto-refresh is turned off, preventing redundant background widget rebuilds.
+- **Settings Sheet Immediate Persistence (`settings_sheet.dart`)**:
+  - Immediately persisted auto-refresh interval selection on tap to ensure choices are retained when closing via the header X button.
+- **Bus Route Return Direction Toggle (`bus_route_sheet.dart`)**:
+  - Added direction toggle chips in the route detail bottom sheet to view stops and schedules for both outbound and return journeys.
+- **Search Performance (`search_screen.dart`)**:
+  - Added a 150ms debounce before executing string queries across all 5,208 bus stops.
+- **Code Cleanliness & Automated Tests (`widget_test.dart`, `models/`)**:
+  - Removed dead model boilerplate (`NextBusInfo.copyWith`, `BusStop.toJson`) and expanded test suite coverage to 7 passing tests.
+- **Prebuilt Android Release APK (`releases/`)**:
+  - Added `v1.0.5+6` universal ARM release APK.
+
+---
+
 ## [1.0.3+4] - 2026-10-25
 
 ### Added & Changed

@@ -29,6 +29,8 @@ class LtaApiService {
 
   final String? accountKey;
   bool lastFetchIsLive = false;
+  String? lastErrorMessage;
+  bool get lastFetchHadError => lastErrorMessage != null;
 
   LtaApiService({this.accountKey});
 
@@ -61,18 +63,24 @@ class LtaApiService {
           final data = jsonDecode(response.body) as Map<String, dynamic>;
           final servicesList = data['Services'] as List<dynamic>? ?? [];
           lastFetchIsLive = true;
+          lastErrorMessage = null;
           return servicesList
               .map((s) => BusArrivalService.fromJson(s as Map<String, dynamic>))
               .toList();
+        } else {
+          lastErrorMessage = response.statusCode == 401 || response.statusCode == 403
+              ? 'Invalid or expired LTA DataMall Key (${response.statusCode})'
+              : 'LTA DataMall API error (${response.statusCode})';
         }
       } catch (_) {
-        // Network timeout or API error with a live key: return empty list so UI shows "No Est. Available"
+        lastErrorMessage = 'Network error or request timeout';
       }
       lastFetchIsLive = false;
       return const [];
     }
 
     lastFetchIsLive = false;
+    lastErrorMessage = null;
     return _generateSimulatedArrivals(busStopCode, stopServices: stopServices);
   }
 

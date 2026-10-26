@@ -29,6 +29,7 @@ class _BusStopDetailScreenState extends State<BusStopDetailScreen> {
   int _secondsUntilRefresh = 0;
   Timer? _tickerTimer;
   UserSettings _settings = const UserSettings();
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -74,6 +75,10 @@ class _BusStopDetailScreenState extends State<BusStopDetailScreen> {
 
   void _startTicker() {
     _tickerTimer?.cancel();
+    if (_settings.autoRefreshSeconds <= 0) {
+      if (mounted) setState(() => _secondsUntilRefresh = 0);
+      return;
+    }
     _tickerTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
       final now = DateTime.now();
@@ -90,41 +95,40 @@ class _BusStopDetailScreenState extends State<BusStopDetailScreen> {
         if (remaining == 0 && !_isRefreshing && !_isLoading) {
           _fetchArrivals(silent: true);
         }
-      } else {
-        setState(() {
-          _secondsUntilRefresh = 0;
-        });
       }
     });
   }
 
-  void _showRefreshToast() {
+  void _showRefreshToast({String? error}) {
     if (!mounted) return;
     final messenger = ScaffoldMessenger.of(context);
     messenger.clearSnackBars();
+    final isError = error != null;
     messenger.showSnackBar(
       SnackBar(
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.fromLTRB(24, 0, 24, 16),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        duration: const Duration(milliseconds: 1800),
+        duration: const Duration(milliseconds: 2200),
         backgroundColor: const Color(0xFF0F172A),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(14),
         ),
-        content: const Row(
+        content: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              Icons.check_circle_rounded,
+              isError
+                  ? Icons.error_outline_rounded
+                  : Icons.check_circle_rounded,
               size: 16,
-              color: Color(0xFF10B981),
+              color: isError ? const Color(0xFFF43F5E) : const Color(0xFF10B981),
             ),
-            SizedBox(width: 8),
+            const SizedBox(width: 8),
             Expanded(
               child: Text(
-                'Arrival data updated',
-                style: TextStyle(
+                isError ? error : 'Arrival data updated',
+                style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                   color: Colors.white,
@@ -192,9 +196,10 @@ class _BusStopDetailScreenState extends State<BusStopDetailScreen> {
         _isRefreshing = false;
         _lastUpdatedAt = DateTime.now();
         _secondsUntilRefresh = _settings.autoRefreshSeconds;
+        _errorMessage = api.lastErrorMessage;
       });
       if (showToast) {
-        _showRefreshToast();
+        _showRefreshToast(error: api.lastErrorMessage);
       }
     }
   }
@@ -363,6 +368,32 @@ class _BusStopDetailScreenState extends State<BusStopDetailScreen> {
               ),
             ),
           ),
+
+          if (_errorMessage != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 2, 16, 4),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE11D48).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.info_outline_rounded, size: 13, color: Color(0xFFE11D48)),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        _errorMessage!,
+                        style: const TextStyle(fontSize: 11, color: Color(0xFFE11D48), fontWeight: FontWeight.w500),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
 
           // Right-aligned small faded countdown text ("Updating in 30s")
           if (_settings.autoRefreshSeconds > 0 || _isRefreshing)

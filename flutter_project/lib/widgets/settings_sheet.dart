@@ -3,7 +3,7 @@ import '../services/favorites_service.dart';
 import '../services/transit_db_service.dart';
 
 class SettingsSheet extends StatefulWidget {
-  static const String appVersion = '1.0.4+5';
+  static const String appVersion = '1.0.5+6';
 
   final UserSettings settings;
   final ValueChanged<UserSettings> onSettingsUpdated;
@@ -35,6 +35,17 @@ class _SettingsSheetState extends State<SettingsSheet> {
       widget.settings.copyWith(
         themeMode: mode,
         autoRefreshSeconds: _autoRefresh,
+      ),
+    );
+    widget.onSettingsUpdated(updated);
+  }
+
+  Future<void> _selectAutoRefresh(int sec) async {
+    setState(() => _autoRefresh = sec);
+    final updated = await FavoritesService.saveSettings(
+      widget.settings.copyWith(
+        themeMode: _themeMode,
+        autoRefreshSeconds: sec,
       ),
     );
     widget.onSettingsUpdated(updated);
@@ -158,7 +169,7 @@ class _SettingsSheetState extends State<SettingsSheet> {
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 3),
                       child: InkWell(
-                        onTap: () => setState(() => _autoRefresh = sec),
+                        onTap: () => _selectAutoRefresh(sec),
                         borderRadius: BorderRadius.circular(12),
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 10),

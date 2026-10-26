@@ -1,8 +1,10 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:quickbus_sg/main.dart';
 import 'package:quickbus_sg/models/bus_arrival.dart';
 import 'package:quickbus_sg/services/favorites_service.dart';
+import 'package:quickbus_sg/services/lta_api_service.dart';
 import 'package:quickbus_sg/services/transit_db_service.dart';
 
 void main() {
@@ -72,6 +74,40 @@ void main() {
     }
     final recents = await FavoritesService.getRecentStopRecords();
     expect(recents.length, equals(30));
+  });
+
+  test('UserSettings serialization preserves custom auto-refresh and theme', () async {
+    SharedPreferences.setMockInitialValues({});
+    const custom = UserSettings(
+      datamallKey: 'test-key',
+      autoRefreshSeconds: 15,
+      themeMode: ThemeMode.dark,
+    );
+    await FavoritesService.saveSettings(custom);
+    final loaded = await FavoritesService.getSettings();
+    expect(loaded.autoRefreshSeconds, equals(15));
+    expect(loaded.themeMode, equals(ThemeMode.dark));
+    expect(loaded.datamallKey, equals('test-key'));
+  });
+
+  test('LtaApiService tracks error messages and live status', () async {
+    final api = LtaApiService(accountKey: '');
+    final simulated = await api.getBusArrivals('03223', stopServices: ['147']);
+    expect(simulated.isNotEmpty, isTrue);
+    expect(api.lastFetchIsLive, isFalse);
+    expect(api.lastFetchHadError, isFalse);
+    expect(api.lastErrorMessage, isNull);
+  });
+
+  test('BusRouteInfo contains bidirectional stops and schedule windows', () async {
+    await TransitDbService.init();
+    final route = TransitDbService.getBusRouteAndSchedule('147');
+    expect(route.serviceNo, equals('147'));
+    expect(route.direction1Stops.isNotEmpty, isTrue);
+    expect(route.direction2Stops, isNotNull);
+    expect(route.direction2Stops!.isNotEmpty, isTrue);
+    expect(route.schedule.weekday.first, isNotEmpty);
+    expect(route.schedule.weekday.last, isNotEmpty);
   });
 
   testWidgets('QuickBus SG app smoke test', (WidgetTester tester) async {

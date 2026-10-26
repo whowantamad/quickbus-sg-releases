@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/bus_stop.dart';
 import '../services/favorites_service.dart';
@@ -22,6 +23,7 @@ class SearchScreenState extends State<SearchScreen> {
   final TextEditingController _controller = TextEditingController();
   String _query = '';
   List<BusStop> _results = [];
+  Timer? _debounceTimer;
 
   @override
   void initState() {
@@ -31,6 +33,7 @@ class SearchScreenState extends State<SearchScreen> {
 
   @override
   void dispose() {
+    _debounceTimer?.cancel();
     _controller.dispose();
     super.dispose();
   }
@@ -55,6 +58,17 @@ class SearchScreenState extends State<SearchScreen> {
     if (mounted) {
       setState(() => _results = defaults);
     }
+  }
+
+  void _onSearchChanged(String q) {
+    _debounceTimer?.cancel();
+    if (q.trim().isEmpty) {
+      _handleSearch('');
+      return;
+    }
+    _debounceTimer = Timer(const Duration(milliseconds: 150), () {
+      _handleSearch(q);
+    });
   }
 
   Future<void> _handleSearch(String q) async {
@@ -89,7 +103,7 @@ class SearchScreenState extends State<SearchScreen> {
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
           child: TextField(
             controller: _controller,
-            onChanged: _handleSearch,
+            onChanged: _onSearchChanged,
             style: const TextStyle(fontSize: 13),
             decoration: InputDecoration(
               hintText: 'Stop code, road, or bus (e.g. 147)...',
