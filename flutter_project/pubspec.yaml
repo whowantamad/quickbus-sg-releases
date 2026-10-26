@@ -1,7 +1,7 @@
 name: quickbus_sg
 description: "Minimalist Singapore Bus Arrival app powered by LTA DataMall v3 with Material 3 design and offline-first transit database."
 publish_to: "none"
-version: 1.0.0+1
+version: 1.0.1+2
 
 environment:
   sdk: ">=3.0.0 <4.0.0"

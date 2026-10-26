@@ -1,35 +1,36 @@
 # QuickBus SG 🇸🇬 🚌
 
-**Version:** `v1.0.0+1` · [Changelog](./CHANGELOG.md)
+**Latest Version:** `v1.0.1+2` · [Full Changelog](./CHANGELOG.md)
 
 A minimalist, high-speed Singapore Bus Arrival & Transit application built with both a **Flutter Android native app** (`flutter_project/`) and a **React + TypeScript + Express web app** (`src/`, `server.ts`), powered by LTA DataMall v3 and a complete bundled offline Singapore transit database.
 
 ---
 
-## 📱 Prebuilt Android APKs (`v1.0.0+1`)
+## 📱 Prebuilt Android APKs (`releases/`)
 
-Pre-compiled release APKs are located in the [`releases/`](./releases) directory for direct installation and testing on Android devices:
+Pre-compiled release APKs are stored in the [`releases/`](./releases) directory for direct installation, with previous versions preserved for rollback testing:
 
+### Latest Release: `v1.0.1+2`
 | Variant | Architecture | File | Recommended For |
 | :--- | :--- | :--- | :--- |
-| **ARM64 Split APK** *(Recommended)* | `arm64-v8a` (64-bit) | [`releases/quickbus-sg-v1.0.0-arm64-v8a.apk`](./releases/quickbus-sg-v1.0.0-arm64-v8a.apk) | All modern Android phones (Android 8.0+) |
-| **ARMv7 Split APK** | `armeabi-v7a` (32-bit) | [`releases/quickbus-sg-v1.0.0-armeabi-v7a.apk`](./releases/quickbus-sg-v1.0.0-armeabi-v7a.apk) | Older 32-bit Android devices |
-| **Combined ARM APK** | `arm64-v8a` + `armeabi-v7a` | [`releases/quickbus-sg-v1.0.0-arm-universal.apk`](./releases/quickbus-sg-v1.0.0-arm-universal.apk) | Single installer supporting all ARM Android phones |
+| **ARM64 Split APK** *(Recommended)* | `arm64-v8a` (64-bit) | [`releases/quickbus-sg-v1.0.1-arm64-v8a.apk`](./releases/quickbus-sg-v1.0.1-arm64-v8a.apk) | All modern Android phones (Android 8.0+) |
+| **ARMv7 Split APK** | `armeabi-v7a` (32-bit) | [`releases/quickbus-sg-v1.0.1-armeabi-v7a.apk`](./releases/quickbus-sg-v1.0.1-armeabi-v7a.apk) | Older 32-bit Android devices |
+| **Combined ARM APK** | `arm64-v8a` + `armeabi-v7a` | [`releases/quickbus-sg-v1.0.1-arm-universal.apk`](./releases/quickbus-sg-v1.0.1-arm-universal.apk) | Single installer supporting all ARM Android phones |
+
+### Previous Release: `v1.0.0+1`
+| Variant | Architecture | File |
+| :--- | :--- | :--- |
+| **ARM64 Split APK** | `arm64-v8a` (64-bit) | [`releases/quickbus-sg-v1.0.0-arm64-v8a.apk`](./releases/quickbus-sg-v1.0.0-arm64-v8a.apk) |
+| **ARMv7 Split APK** | `armeabi-v7a` (32-bit) | [`releases/quickbus-sg-v1.0.0-armeabi-v7a.apk`](./releases/quickbus-sg-v1.0.0-armeabi-v7a.apk) |
+| **Combined ARM APK** | `arm64-v8a` + `armeabi-v7a` | [`releases/quickbus-sg-v1.0.0-arm-universal.apk`](./releases/quickbus-sg-v1.0.0-arm-universal.apk) |
 
 ---
 
-## ✨ What's New in `v1.0.0+1` (Changelog)
+## ✨ What's New in `v1.0.1+2`
 
-- **Bundled Offline Transit Database (`sg_transit_snapshot.json`)**: Instant offline access to **5,208+ Singapore Bus Stops**, **602+ Bus Routes**, and **per-stop, per-service First/Last Bus Operating Hours**.
-- **Offline-First Progressive Hydration**: Bus Stop Detail view renders all bus services from the offline database immediately at `0ms` and hydrates live LTA arrival timings in-place.
-- **Live LTA DataMall v3 Integration via `.env`**: Reads `LTA_DATAMALL_KEY` automatically from `.env` (or `--dart-define`) in [`LtaApiService`](./flutter_project/lib/services/lta_api_service.dart), with an optional runtime key override in the Settings sheet.
-- **Dynamic Service Sorting**:
-  1. **Starred / Favorite Bus Services** pinned at the top
-  2. **Services with Active Arrival Timings** ordered right after favorites
-  3. **Services without Arrival Timings** (`No Est. Available` / `Not In Operation`) grouped at the bottom
-- **Official LTA No-Arrival Advisements**: Automatically distinguishes between `"Not In Operation"` (outside that specific stop & service's scheduled hours in Singapore Time, `UTC+8`) and `"No Est. Available"`.
-- **2-Layer Double Decker Badge & Load Bars**: Clean neutral arrival slots with color-coded bottom load indicator bars (`SEA` Emerald, `SDA` Amber, `LSD` Rose) and a custom 2-layer Double Decker icon.
-- **4-Tab Navigation & Settings Sheet**: **Starred**, **Nearby**, **Search**, and **MRT Map** tabs, swipe-to-delete with confirmation dialog, pull-down to refresh, **Light / Dark / Auto** theme selector, and in-app version & changelog viewer.
+- **Interactive MRT System Map (`mrt-map.png`)**: Full-bleed LTA Singapore Rail System Map on the **MRT** tab with pinch-to-zoom, pan, and smooth double-tap zoom/reset gestures.
+- **Refined Bottom Navigation Bar**: Crisp white (`#FFFFFF`) and dark navy (`#0C1220`) navigation bar theme without Material 3 surface tinting, matching the React design.
+- **Streamlined Settings Sheet**: Displays the version badge (`v1.0.1+2`), **Theme Mode**, **Auto-Refresh Interval**, and the **Offline Transit Database** status card at the bottom.
 
 ---
 
