@@ -2,6 +2,19 @@
 
 All notable changes to **QuickBus SG** are documented in this file.
 
+## [1.0.2+3] - 2026-10-25
+
+### Changed
+- **App Launcher Icon & Brand Logo (`android/app/src/main/res/mipmap-*/ic_launcher.png`, `home_screen.dart`, `web/`)**:
+  - Replaced default Flutter launcher icons with the official QuickBus SG lightning-bolt + `G` icon from `public/icon.svg` across all Android mipmap densities (`mdpi` through `xxxhdpi`) and web icons.
+  - Updated the in-app header brand icon to render the exact SVG vector path from `public/icon.svg`.
+- **Bus Service Arrival Cards (`transit_db_service.dart`, `bus_arrival_card.dart`)**:
+  - Displayed the `→ <Road Name>` direction label **only** when a bus service visits the bus stop twice in two directions/loops (e.g., Bus `358` and `359` East/West loops at Pasir Ris Interchange), keeping single-visit bus service cards clean and compact.
+- **Prebuilt Android Release APKs (`releases/`)**:
+  - Added `v1.0.2` APKs (`arm64-v8a`, `armeabi-v7a`, and combined ARM) alongside preserved `v1.0.1` and `v1.0.0` APKs.
+
+---
+
 ## [1.0.1+2] - 2026-10-25
 
 ### Changed

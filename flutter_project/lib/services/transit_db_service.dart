@@ -271,7 +271,34 @@ class TransitDbService {
             (routesList[0] as List<dynamic>).map((e) => e.toString()).toList();
         final splitIdx = _findDualLoopSplitIndex(dir1Codes, serviceNo);
         if (splitIdx != -1) {
-          return stopCode == dir1Codes[0] || stopCode == dir1Codes[splitIdx];
+          if (stopCode == dir1Codes[0] || stopCode == dir1Codes[splitIdx]) {
+            return true;
+          }
+        }
+        // Check if this service visits stopCode twice as a boarding stop
+        final boardingCodes = dir1Codes.length > 1 &&
+                dir1Codes.first == dir1Codes.last
+            ? dir1Codes.sublist(0, dir1Codes.length - 1)
+            : dir1Codes;
+        final visitCount =
+            boardingCodes.where((code) => code == stopCode).length;
+        if (visitCount >= 2) {
+          return true;
+        }
+      } else if (routesList.length > 1) {
+        final dir1Codes =
+            (routesList[0] as List<dynamic>).map((e) => e.toString()).toList();
+        final dir2Codes =
+            (routesList[1] as List<dynamic>).map((e) => e.toString()).toList();
+        final dir1Boarding = dir1Codes.length > 1
+            ? dir1Codes.sublist(0, dir1Codes.length - 1)
+            : dir1Codes;
+        final dir2Boarding = dir2Codes.length > 1
+            ? dir2Codes.sublist(0, dir2Codes.length - 1)
+            : dir2Codes;
+        if (dir1Boarding.contains(stopCode) &&
+            dir2Boarding.contains(stopCode)) {
+          return true;
         }
       }
     }
@@ -553,6 +580,9 @@ class TransitDbService {
     );
   }
 
+  /// Returns the direction/road label ONLY when the service visits the stop twice
+  /// (e.g. Bus 358 East & West wings at Pasir Ris Int). Returns empty string for
+  /// services that only visit the bus stop once.
   static String resolveDirectionLabel(
     BusArrivalService service,
     String? currentStopCode,
@@ -562,44 +592,16 @@ class TransitDbService {
       return service.loopDirectionLabel!;
     }
 
-    final route = getBusRouteAndSchedule(service.serviceNo);
-    if (route.isDualLoop) {
-      if (service.loopWing == 1) return route.direction1Name;
-      if (service.loopWing == 2 && route.direction2Name != null) {
-        return route.direction2Name!;
-      }
-    }
-
-    if (route.direction2Stops != null &&
-        route.direction2Stops!.isNotEmpty &&
-        currentStopCode != null) {
-      final idx1 = route.direction1Stops
-          .indexWhere((s) => s.code == currentStopCode);
-      final idx2 = route.direction2Stops!
-          .indexWhere((s) => s.code == currentStopCode);
-      if ((idx2 != -1 && idx1 == -1) ||
-          (idx1 == route.direction1Stops.length - 1 && idx2 == 0)) {
+    if (currentStopCode != null &&
+        isDualLoopAtStop(service.serviceNo, currentStopCode)) {
+      final route = getBusRouteAndSchedule(service.serviceNo);
+      if (service.loopWing == 2) {
         return route.direction2Name ?? route.origin;
-      }
-    }
-
-    if (route.isLoop && currentStopCode != null) {
-      final idx = route.direction1Stops
-          .indexWhere((s) => s.code == currentStopCode);
-      final turnIdx = (route.direction1Stops.length * 0.55).floor();
-      if (idx >= turnIdx && idx < route.direction1Stops.length - 1) {
-        return route.origin;
       }
       return route.direction1Name;
     }
 
-    final destCode = service.nextBus?.destinationCode;
-    if (destCode != null && destCode.isNotEmpty) {
-      final stop = getStopByCode(destCode);
-      if (stop != null) return stop.name;
-    }
-
-    return route.direction1Name;
+    return '';
   }
 
   static int? _parseTimeToMinutes(String? timeStr) {
@@ -711,7 +713,7 @@ class TransitDbService {
             nextBus2: _shiftBusEta(svc.nextBus2, 4),
             nextBus3: _shiftBusEta(svc.nextBus3, 3),
             loopWing: 2,
-            loopDirectionLabel: routeInfo.direction2Name ?? 'Loop 2',
+            loopDirectionLabel: routeInfo.direction2Name ?? routeInfo.origin,
             routeKey: '${svc.serviceNo}-wing-2',
           ),
         );

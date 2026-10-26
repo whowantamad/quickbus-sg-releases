@@ -78,29 +78,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
               alignment: Alignment.center,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.bolt_rounded,
-                    color: Colors.white,
-                    size: 15,
-                  ),
-                  Transform.translate(
-                    offset: const Offset(-1.5, 2.0),
-                    child: const Text(
-                      'G',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 11,
-                        height: 1.0,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                  ),
-                ],
+              child: const CustomPaint(
+                size: Size(32, 32),
+                painter: _QuickBusLogoPainter(),
               ),
             ),
             const SizedBox(width: 8),
@@ -190,4 +170,59 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+}
+
+/// Renders the exact SVG path and 'G' glyph from `public/icon.svg` (viewBox 0 0 512 512)
+class _QuickBusLogoPainter extends CustomPainter {
+  const _QuickBusLogoPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final sx = size.width / 512.0;
+    final sy = size.height / 512.0;
+
+    // Lightning bolt ('S'): M238 116 L118 278 H216 L196 396 L316 234 H218 Z
+    final boltPath = Path()
+      ..moveTo(238 * sx, 116 * sy)
+      ..lineTo(118 * sx, 278 * sy)
+      ..lineTo(216 * sx, 278 * sy)
+      ..lineTo(196 * sx, 396 * sy)
+      ..lineTo(316 * sx, 234 * sy)
+      ..lineTo(218 * sx, 234 * sy)
+      ..close();
+
+    final fillPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.fill;
+    final strokePaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 12 * sx
+      ..strokeJoin = StrokeJoin.round;
+
+    canvas.drawPath(boltPath, fillPaint);
+    canvas.drawPath(boltPath, strokePaint);
+
+    // Bold 'G' aligned to the bottom of the lightning bolt (x=278, y=396, font-size=185)
+    final textPainter = TextPainter(
+      text: TextSpan(
+        text: 'G',
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 185 * sy,
+          fontWeight: FontWeight.w900,
+          height: 1.0,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+
+    textPainter.paint(
+      canvas,
+      Offset(278 * sx, 396 * sy - textPainter.height * 0.82),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
