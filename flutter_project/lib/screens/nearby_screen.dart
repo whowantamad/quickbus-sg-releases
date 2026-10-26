@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import '../models/bus_stop.dart';
@@ -26,7 +28,8 @@ class NearbyScreen extends StatefulWidget {
   State<NearbyScreen> createState() => _NearbyScreenState();
 }
 
-class _NearbyScreenState extends State<NearbyScreen> {
+class _NearbyScreenState extends State<NearbyScreen>
+    with WidgetsBindingObserver {
   static const List<_SgHub> _hubs = [
     _SgHub(name: 'City Hall', lat: 1.2929, lng: 103.8529),
     _SgHub(name: 'Orchard', lat: 1.3040, lng: 103.8340),
@@ -41,13 +44,29 @@ class _NearbyScreenState extends State<NearbyScreen> {
   String _selectedHub = 'City Hall';
   bool _isLocating = false;
   bool _usingGps = false;
+  bool _waitingForSettingsReturn = false;
   String? _geoError;
   List<BusStop> _stops = [];
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _selectHub(_hubs.first);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _waitingForSettingsReturn) {
+      _waitingForSettingsReturn = false;
+      _handleUseGps();
+    }
   }
 
   void _selectHub(_SgHub hub) {
@@ -60,6 +79,72 @@ class _NearbyScreenState extends State<NearbyScreen> {
     });
   }
 
+  LocationSettings _buildLocationSettings({
+    required LocationAccuracy accuracy,
+    required Duration timeLimit,
+    bool forceLocationManager = false,
+  }) {
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      return AndroidSettings(
+        accuracy: accuracy,
+        intervalDuration: const Duration(milliseconds: 500),
+        forceLocationManager: forceLocationManager,
+        timeLimit: timeLimit,
+      );
+    }
+    return LocationSettings(
+      accuracy: accuracy,
+      timeLimit: timeLimit,
+    );
+  }
+
+  Future<Position?> _tryGetLastKnownPosition() async {
+    try {
+      final fusedLast = await Geolocator.getLastKnownPosition();
+      if (fusedLast != null) return fusedLast;
+    } catch (_) {}
+
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      try {
+        final managerLast = await Geolocator.getLastKnownPosition(
+          forceAndroidLocationManager: true,
+        );
+        if (managerLast != null) return managerLast;
+      } catch (_) {}
+    }
+    return null;
+  }
+
+  Future<Position?> _acquireFallbackPosition() async {
+    // Stage 2: Fused balanced/medium accuracy (fast Wi-Fi + cell + GPS indoors)
+    try {
+      return await Geolocator.getCurrentPosition(
+        locationSettings: _buildLocationSettings(
+          accuracy: LocationAccuracy.medium,
+          timeLimit: const Duration(seconds: 5),
+        ),
+      );
+    } catch (_) {}
+
+    // Stage 3 & 4: Last known cached position (Fused, then LocationManager)
+    final lastKnown = await _tryGetLastKnownPosition();
+    if (lastKnown != null) return lastKnown;
+
+    // Stage 5: Direct Android LocationManager live fix
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      try {
+        return await Geolocator.getCurrentPosition(
+          locationSettings: _buildLocationSettings(
+            accuracy: LocationAccuracy.medium,
+            forceLocationManager: true,
+            timeLimit: const Duration(seconds: 6),
+          ),
+        );
+      } catch (_) {}
+    }
+    return null;
+  }
+
   Future<void> _handleUseGps() async {
     if (_isLocating) return;
     setState(() {
@@ -68,47 +153,132 @@ class _NearbyScreenState extends State<NearbyScreen> {
     });
 
     try {
-      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
+      // 1. Check / request app location permission first
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+
+      if (permission == LocationPermission.denied) {
         if (mounted) {
           setState(() {
             _isLocating = false;
-            _geoError = 'Location services disabled';
+            _geoError = 'Location permission denied';
           });
         }
         return;
       }
 
-      var permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
+      if (permission == LocationPermission.deniedForever) {
+        if (!kIsWeb) {
+          _waitingForSettingsReturn = true;
+          await Geolocator.openAppSettings();
+        }
+        if (mounted) {
+          setState(() {
+            _isLocating = false;
+            _geoError = 'Permission disabled — tap to open App Settings';
+          });
+        }
+        return;
+      }
+
+      // 2. Check whether location services are already on (without aborting if off,
+      //    so getCurrentPosition can trigger the native Android system dialog to enable GPS)
+      bool serviceInitiallyEnabled = false;
+      try {
+        serviceInitiallyEnabled = await Geolocator.isLocationServiceEnabled();
+      } catch (_) {
+        serviceInitiallyEnabled = false;
+      }
+
+      // If GPS is already enabled and we have a recent cached position, show it right away
+      // while we refine with a fresh fix.
+      if (serviceInitiallyEnabled) {
+        final quickLast = await _tryGetLastKnownPosition();
+        if (quickLast != null && mounted) {
+          final initialStops = TransitDbService.getNearestStops(
+            quickLast.latitude,
+            quickLast.longitude,
+            limit: 15,
+          );
+          setState(() {
+            _selectedHub = 'GPS';
+            _usingGps = true;
+            _stops = initialStops;
+          });
+        }
+      }
+
+      // 3. Request high-accuracy position.
+      //    On Android, if device GPS is off, FusedLocationClient automatically triggers
+      //    the native system resolution dialog ("Turn on device location?").
+      final promptStartMs = DateTime.now().millisecondsSinceEpoch;
+      Position? pos;
+
+      try {
+        pos = await Geolocator.getCurrentPosition(
+          locationSettings: _buildLocationSettings(
+            accuracy: LocationAccuracy.high,
+            timeLimit: Duration(seconds: serviceInitiallyEnabled ? 5 : 20),
+          ),
+        );
+      } on LocationServiceDisabledException {
+        final elapsedMs = DateTime.now().millisecondsSinceEpoch - promptStartMs;
+        // If the inline system dialog couldn't be shown by Play Services, open Location Settings
+        if (!kIsWeb && elapsedMs < 1200) {
+          _waitingForSettingsReturn = true;
+          await Geolocator.openLocationSettings();
+        }
+        if (mounted) {
+          setState(() {
+            _isLocating = false;
+            _geoError = 'Device GPS is off — tap here to open Location Settings';
+          });
+        }
+        return;
+      } on PermissionDeniedException {
+        if (mounted) {
+          setState(() {
+            _isLocating = false;
+            _geoError = 'Location permission denied';
+          });
+        }
+        return;
+      } on TimeoutException {
+        pos = await _acquireFallbackPosition();
+      } catch (e) {
+        final errStr = e.toString();
+        if (errStr.contains('LOCATION_SERVICES_DISABLED')) {
+          final elapsedMs =
+              DateTime.now().millisecondsSinceEpoch - promptStartMs;
+          if (!kIsWeb && elapsedMs < 1200) {
+            _waitingForSettingsReturn = true;
+            await Geolocator.openLocationSettings();
+          }
           if (mounted) {
             setState(() {
               _isLocating = false;
-              _geoError = 'GPS access denied';
+              _geoError =
+                  'Device GPS is off — tap here to open Location Settings';
             });
           }
           return;
         }
+        pos = await _acquireFallbackPosition();
       }
 
-      if (permission == LocationPermission.deniedForever) {
+      if (pos == null) {
         if (mounted) {
           setState(() {
             _isLocating = false;
-            _geoError = 'GPS access permanently denied';
+            if (!_usingGps) {
+              _geoError = 'Could not acquire GPS signal — please try again';
+            }
           });
         }
         return;
       }
-
-      final pos = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-          timeLimit: Duration(seconds: 8),
-        ),
-      );
 
       final nearest = TransitDbService.getNearestStops(
         pos.latitude,
@@ -121,6 +291,7 @@ class _NearbyScreenState extends State<NearbyScreen> {
           _selectedHub = 'GPS';
           _usingGps = true;
           _isLocating = false;
+          _geoError = null;
           _stops = nearest;
         });
       }
@@ -128,7 +299,9 @@ class _NearbyScreenState extends State<NearbyScreen> {
       if (mounted) {
         setState(() {
           _isLocating = false;
-          _geoError = 'GPS access denied';
+          if (!_usingGps) {
+            _geoError = 'Could not acquire GPS location';
+          }
         });
       }
     }
@@ -251,42 +424,62 @@ class _NearbyScreenState extends State<NearbyScreen> {
         if (_geoError != null)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: isDark
-                    ? const Color(0xFF78350F).withValues(alpha: 0.25)
-                    : const Color(0xFFFFFBEB),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () async {
+                if (kIsWeb) {
+                  _handleUseGps();
+                  return;
+                }
+                final msg = _geoError ?? '';
+                if (msg.contains('Location Settings')) {
+                  _waitingForSettingsReturn = true;
+                  await Geolocator.openLocationSettings();
+                } else if (msg.contains('App Settings')) {
+                  _waitingForSettingsReturn = true;
+                  await Geolocator.openAppSettings();
+                } else {
+                  _handleUseGps();
+                }
+              },
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
                   color: isDark
-                      ? const Color(0xFF92400E).withValues(alpha: 0.5)
-                      : const Color(0xFFFDE68A),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.error_outline_rounded,
-                    size: 15,
+                      ? const Color(0xFF78350F).withValues(alpha: 0.25)
+                      : const Color(0xFFFFFBEB),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
                     color: isDark
-                        ? const Color(0xFFFBBF24)
-                        : const Color(0xFFB45309),
+                        ? const Color(0xFF92400E).withValues(alpha: 0.5)
+                        : const Color(0xFFFDE68A),
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      _geoError!,
-                      style: TextStyle(
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w600,
-                        color: isDark
-                            ? const Color(0xFFFCD34D)
-                            : const Color(0xFFB45309),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.error_outline_rounded,
+                      size: 15,
+                      color: isDark
+                          ? const Color(0xFFFBBF24)
+                          : const Color(0xFFB45309),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _geoError!,
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                          color: isDark
+                              ? const Color(0xFFFCD34D)
+                              : const Color(0xFFB45309),
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

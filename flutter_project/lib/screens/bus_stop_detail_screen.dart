@@ -142,6 +142,8 @@ class _BusStopDetailScreenState extends State<BusStopDetailScreen> {
     bool showToast = false,
   }) async {
     if (!mounted) return;
+    final requestedCode = _currentStop.code;
+    final requestedServices = List<String>.from(_currentStop.services);
     setState(() {
       if (!silent) _isLoading = true;
       _isRefreshing = true;
@@ -149,9 +151,11 @@ class _BusStopDetailScreenState extends State<BusStopDetailScreen> {
 
     final api = LtaApiService(accountKey: _settings.datamallKey);
     final liveList = await api.getBusArrivals(
-      _currentStop.code,
-      stopServices: _currentStop.services,
+      requestedCode,
+      stopServices: requestedServices,
     );
+
+    if (!mounted || _currentStop.code != requestedCode) return;
 
     final activeMap = <String, BusArrivalService>{
       for (final s in liveList) s.serviceNo: s,
@@ -160,7 +164,7 @@ class _BusStopDetailScreenState extends State<BusStopDetailScreen> {
     final rawServices = <BusArrivalService>[];
     final seen = <String>{};
 
-    for (final svcNo in _currentStop.services) {
+    for (final svcNo in requestedServices) {
       seen.add(svcNo);
       final liveSvc = activeMap[svcNo];
       if (liveSvc != null) {
@@ -178,10 +182,10 @@ class _BusStopDetailScreenState extends State<BusStopDetailScreen> {
 
     final expanded = TransitDbService.expandServicesForStop(
       rawServices,
-      _currentStop.code,
+      requestedCode,
     );
 
-    if (mounted) {
+    if (mounted && _currentStop.code == requestedCode) {
       setState(() {
         _services = expanded;
         _isLoading = false;

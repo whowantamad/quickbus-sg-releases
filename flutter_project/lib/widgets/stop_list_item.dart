@@ -28,6 +28,7 @@ class _StopListItemState extends State<StopListItem> {
   @override
   void initState() {
     super.initState();
+    _starred = FavoritesService.isStarredSync(widget.stop.code) ?? false;
     _loadStarred();
   }
 

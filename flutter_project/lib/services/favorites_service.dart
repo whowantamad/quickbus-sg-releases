@@ -61,6 +61,9 @@ class FavoritesService {
   static const String _recentStopsKey = 'quickbus_recent_stops';
   static const String _starredServicesKey = 'quickbus_starred_services';
   static const String _settingsKey = 'quickbus_settings';
+  static const int _maxRecentStops = 30;
+
+  static Set<String>? _starredCodesCache;
 
   static final List<FavoriteStop> _initialFavorites = [
     FavoriteStop(
@@ -92,15 +95,19 @@ class FavoritesService {
     }
     try {
       final list = jsonDecode(raw) as List<dynamic>;
-      return list
+      final parsed = list
           .map((e) => FavoriteStop.fromJson(e as Map<String, dynamic>))
           .toList();
+      _starredCodesCache = {for (final f in parsed) f.code};
+      return parsed;
     } catch (_) {
+      _starredCodesCache = {for (final f in _initialFavorites) f.code};
       return _initialFavorites;
     }
   }
 
   static Future<void> saveFavorites(List<FavoriteStop> favorites) async {
+    _starredCodesCache = {for (final f in favorites) f.code};
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(
       _favoritesKey,
@@ -108,7 +115,13 @@ class FavoritesService {
     );
   }
 
+  static bool? isStarredSync(String code) =>
+      _starredCodesCache?.contains(code);
+
   static Future<bool> isStarred(String code) async {
+    if (_starredCodesCache != null) {
+      return _starredCodesCache!.contains(code);
+    }
     final list = await getFavorites();
     return list.any((f) => f.code == code);
   }
@@ -192,9 +205,10 @@ class FavoritesService {
       final cmp = b.count.compareTo(a.count);
       return cmp != 0 ? cmp : b.lastOpenedAt.compareTo(a.lastOpenedAt);
     });
+    final capped = current.take(_maxRecentStops).toList();
     await prefs.setString(
       _recentStopsKey,
-      jsonEncode(current.map((r) => r.toJson()).toList()),
+      jsonEncode(capped.map((r) => r.toJson()).toList()),
     );
   }
 

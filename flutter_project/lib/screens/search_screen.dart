@@ -42,6 +42,7 @@ class SearchScreenState extends State<SearchScreen> {
       final recentStops = records
           .map((r) => TransitDbService.getStopByCode(r.code))
           .whereType<BusStop>()
+          .take(20)
           .toList();
       if (recentStops.isNotEmpty) {
         if (mounted) {

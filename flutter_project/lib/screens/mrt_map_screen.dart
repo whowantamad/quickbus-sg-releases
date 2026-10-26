@@ -1,15 +1,7 @@
 import 'package:flutter/material.dart';
-import '../models/bus_stop.dart';
 
 class MrtMapScreen extends StatefulWidget {
-  final ValueChanged<BusStop>? onSelectStop;
-  final VoidCallback? onFavoritesChanged;
-
-  const MrtMapScreen({
-    super.key,
-    this.onSelectStop,
-    this.onFavoritesChanged,
-  });
+  const MrtMapScreen({super.key});
 
   @override
   State<MrtMapScreen> createState() => _MrtMapScreenState();

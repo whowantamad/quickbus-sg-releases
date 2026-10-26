@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'package:flutter/services.dart' show rootBundle;
 import 'package:http/http.dart' as http;
 import '../models/bus_arrival.dart';
 import 'transit_db_service.dart';
@@ -12,14 +11,9 @@ class LtaApiService {
     'LTA_DATAMALL_KEY',
     defaultValue: '',
   );
-  static String _envFileDatamallKey = '';
 
-  /// Default LTA DataMall AccountKey resolved from `--dart-define` or `.env`.
-  static String get defaultAccountKey {
-    final fromDefine = _sanitizeKey(_dartDefineDatamallKey);
-    if (fromDefine.isNotEmpty) return fromDefine;
-    return _envFileDatamallKey;
-  }
+  /// Default LTA DataMall AccountKey resolved from `--dart-define` / `--dart-define-from-file=.env`.
+  static String get defaultAccountKey => _sanitizeKey(_dartDefineDatamallKey);
 
   static String _sanitizeKey(String raw) {
     var val = raw.trim();
@@ -33,53 +27,35 @@ class LtaApiService {
     return val;
   }
 
-  /// Loads `LTA_DATAMALL_KEY` from the bundled `.env` file at startup.
-  static Future<void> initEnv() async {
-    try {
-      final content = await rootBundle.loadString('.env');
-      for (final rawLine in content.split('\n')) {
-        final line = rawLine.trim();
-        if (line.isEmpty || line.startsWith('#')) continue;
-        final eqIndex = line.indexOf('=');
-        if (eqIndex <= 0) continue;
-        final key = line.substring(0, eqIndex).trim();
-        final value = line.substring(eqIndex + 1).trim();
-        if (key == 'LTA_DATAMALL_KEY') {
-          _envFileDatamallKey = _sanitizeKey(value);
-          break;
-        }
-      }
-    } catch (_) {
-      // .env asset not present or unreadable; fall back to --dart-define or in-app settings
-    }
-  }
-
   final String? accountKey;
   bool lastFetchIsLive = false;
 
   LtaApiService({this.accountKey});
 
   /// Fetches real-time bus arrivals for a bus stop code.
-  /// Resolves the API key from the constructor argument, `.env`, or `--dart-define`.
-  /// If no accountKey is provided, falls back to realistic simulation using the offline stop's services.
+  /// When a valid AccountKey is configured, network/API errors return an empty list
+  /// so the UI displays honest "No Est. Available" status rather than fake simulated times.
+  /// Simulation is used only when no AccountKey is configured at all.
   Future<List<BusArrivalService>> getBusArrivals(
     String busStopCode, {
     List<String>? stopServices,
   }) async {
-    final resolvedKey = (accountKey != null && accountKey!.trim().isNotEmpty)
-        ? accountKey!.trim()
+    final resolvedKey = (accountKey != null && _sanitizeKey(accountKey!).isNotEmpty)
+        ? _sanitizeKey(accountKey!)
         : defaultAccountKey;
 
     if (resolvedKey.isNotEmpty) {
       try {
         final url = Uri.parse('$baseUrl/BusArrival?BusStopCode=$busStopCode');
-        final response = await http.get(
-          url,
-          headers: {
-            'AccountKey': resolvedKey,
-            'accept': 'application/json',
-          },
-        );
+        final response = await http
+            .get(
+              url,
+              headers: {
+                'AccountKey': resolvedKey,
+                'accept': 'application/json',
+              },
+            )
+            .timeout(const Duration(seconds: 8));
 
         if (response.statusCode == 200) {
           final data = jsonDecode(response.body) as Map<String, dynamic>;
@@ -90,8 +66,10 @@ class LtaApiService {
               .toList();
         }
       } catch (_) {
-        // Fallback to simulation if network or API error occurs
+        // Network timeout or API error with a live key: return empty list so UI shows "No Est. Available"
       }
+      lastFetchIsLive = false;
+      return const [];
     }
 
     lastFetchIsLive = false;

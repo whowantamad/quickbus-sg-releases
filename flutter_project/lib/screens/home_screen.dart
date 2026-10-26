@@ -120,10 +120,7 @@ class _HomeScreenState extends State<HomeScreen> {
             onSelectStop: _openStop,
             onFavoritesChanged: () => _favoritesKey.currentState?.reload(),
           ),
-          MrtMapScreen(
-            onSelectStop: _openStop,
-            onFavoritesChanged: () => _favoritesKey.currentState?.reload(),
-          ),
+          const MrtMapScreen(),
         ],
       ),
       bottomNavigationBar: Container(

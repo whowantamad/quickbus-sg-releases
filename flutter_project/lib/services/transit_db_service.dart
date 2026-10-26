@@ -201,14 +201,18 @@ class TransitDbService {
     double lng, {
     int limit = 15,
   }) {
-    final withDist = allStops.map((stop) {
-      final dist = _haversineMeters(lat, lng, stop.lat, stop.lng);
-      return stop.copyWith(distanceMeters: dist.round());
-    }).toList();
-    withDist.sort(
-      (a, b) => (a.distanceMeters ?? 999999).compareTo(b.distanceMeters ?? 999999),
-    );
-    return withDist.take(limit).toList();
+    final pairs = [
+      for (final stop in allStops)
+        (
+          stop: stop,
+          dist: _haversineMeters(lat, lng, stop.lat, stop.lng).round(),
+        ),
+    ]..sort((a, b) => a.dist.compareTo(b.dist));
+
+    return pairs
+        .take(limit)
+        .map((p) => p.stop.copyWith(distanceMeters: p.dist))
+        .toList();
   }
 
   static double _haversineMeters(
@@ -679,19 +683,6 @@ class TransitDbService {
         : 'Not In Operation';
   }
 
-  static NextBusInfo? _shiftBusEta(NextBusInfo? bus, int offsetMinutes) {
-    if (bus == null || bus.estimatedArrival == null) return bus;
-    try {
-      final dt = DateTime.parse(bus.estimatedArrival!);
-      return bus.copyWith(
-        estimatedArrival:
-            dt.add(Duration(minutes: offsetMinutes)).toIso8601String(),
-      );
-    } catch (_) {
-      return bus;
-    }
-  }
-
   static List<BusArrivalService> expandServicesForStop(
     List<BusArrivalService> rawServices,
     String stopCode,
@@ -709,9 +700,6 @@ class TransitDbService {
         );
         expanded.add(
           svc.copyWith(
-            nextBus: _shiftBusEta(svc.nextBus, 3),
-            nextBus2: _shiftBusEta(svc.nextBus2, 4),
-            nextBus3: _shiftBusEta(svc.nextBus3, 3),
             loopWing: 2,
             loopDirectionLabel: routeInfo.direction2Name ?? routeInfo.origin,
             routeKey: '${svc.serviceNo}-wing-2',
