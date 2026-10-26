@@ -43,10 +43,7 @@ flutter run -d web-server --web-hostname 0.0.0.0 --web-port 8080 --dart-define-f
 # Run tests:
 flutter test
 
-# Build split release APKs (arm64-v8a & armeabi-v7a):
-flutter build apk --release --split-per-abi --target-platform android-arm,android-arm64 --dart-define-from-file=.env
-
-# Build single universal ARM release APK:
+# Build universal ARM release APK (keeps the 5 most recent in releases/):
 flutter build apk --release --target-platform android-arm,android-arm64 --dart-define-from-file=.env
 ```
 
