@@ -6,16 +6,13 @@ A minimalist, high-speed Singapore Bus Arrival & Transit Flutter application (`f
 
 ---
 
-## 📱 Prebuilt Android APKs (`releases/`)
+## 📱 Prebuilt Android APK (`releases/`)
 
-Pre-compiled release APKs are stored in the [`releases/`](./releases) directory for direct installation:
+The pre-compiled universal ARM release APK is stored in the [`releases/`](./releases) directory:
 
-### Latest Release: `v1.0.4+5`
-| Variant | Architecture | File | Recommended For |
-| :--- | :--- | :--- | :--- |
-| **ARM64 Split APK** *(Recommended)* | `arm64-v8a` (64-bit) | [`releases/quickbus-sg-v1.0.4+5-arm64-v8a.apk`](./releases/quickbus-sg-v1.0.4+5-arm64-v8a.apk) | Modern Android phones (Android 8.0+) |
-| **ARMv7 Split APK** | `armeabi-v7a` (32-bit) | [`releases/quickbus-sg-v1.0.4+5-armeabi-v7a.apk`](./releases/quickbus-sg-v1.0.4+5-armeabi-v7a.apk) | Older 32-bit Android devices |
-| **Combined ARM APK** | `arm64-v8a` + `armeabi-v7a` | [`releases/quickbus-sg-v1.0.4+5-arm-universal.apk`](./releases/quickbus-sg-v1.0.4+5-arm-universal.apk) | Single installer supporting all ARM Android phones |
+| Architecture | File | Recommended For |
+| :--- | :--- | :--- |
+| **Combined ARM** (`arm64-v8a` + `armeabi-v7a`) | [`releases/quickbus-sg-v1.0.4+5-arm-universal.apk`](./releases/quickbus-sg-v1.0.4+5-arm-universal.apk) | All ARM Android devices (Android 8.0+) |
 
 ---
 
