@@ -50,12 +50,39 @@ class _QuickBusAppState extends State<QuickBusApp> {
         colorScheme: ColorScheme.fromSeed(
           seedColor: primaryRose,
           brightness: Brightness.light,
+          surface: Colors.white,
         ),
         scaffoldBackgroundColor: const Color(0xFFF8FAFC),
         appBarTheme: const AppBarTheme(
           backgroundColor: Colors.white,
+          surfaceTintColor: Colors.transparent,
           elevation: 0,
           scrolledUnderElevation: 1,
+        ),
+        navigationBarTheme: NavigationBarThemeData(
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.transparent,
+          indicatorColor: const Color(0xFFFFF1F2),
+          height: 64,
+          labelTextStyle: WidgetStateProperty.resolveWith((states) {
+            final selected = states.contains(WidgetState.selected);
+            return TextStyle(
+              fontSize: 10.5,
+              fontWeight: FontWeight.w600,
+              color: selected
+                  ? const Color(0xFFE11D48)
+                  : const Color(0xFF94A3B8),
+            );
+          }),
+          iconTheme: WidgetStateProperty.resolveWith((states) {
+            final selected = states.contains(WidgetState.selected);
+            return IconThemeData(
+              size: 20,
+              color: selected
+                  ? const Color(0xFFE11D48)
+                  : const Color(0xFF94A3B8),
+            );
+          }),
         ),
       ),
       darkTheme: ThemeData(
@@ -69,8 +96,34 @@ class _QuickBusAppState extends State<QuickBusApp> {
         scaffoldBackgroundColor: const Color(0xFF0C1220),
         appBarTheme: const AppBarTheme(
           backgroundColor: Color(0xFF0C1220),
+          surfaceTintColor: Colors.transparent,
           elevation: 0,
           scrolledUnderElevation: 1,
+        ),
+        navigationBarTheme: NavigationBarThemeData(
+          backgroundColor: const Color(0xFF0C1220),
+          surfaceTintColor: Colors.transparent,
+          indicatorColor: const Color(0xFF4C0519).withValues(alpha: 0.55),
+          height: 64,
+          labelTextStyle: WidgetStateProperty.resolveWith((states) {
+            final selected = states.contains(WidgetState.selected);
+            return TextStyle(
+              fontSize: 10.5,
+              fontWeight: FontWeight.w600,
+              color: selected
+                  ? const Color(0xFFFB7185)
+                  : const Color(0xFF64748B),
+            );
+          }),
+          iconTheme: WidgetStateProperty.resolveWith((states) {
+            final selected = states.contains(WidgetState.selected);
+            return IconThemeData(
+              size: 20,
+              color: selected
+                  ? const Color(0xFFFB7185)
+                  : const Color(0xFF64748B),
+            );
+          }),
         ),
       ),
       home: HomeScreen(

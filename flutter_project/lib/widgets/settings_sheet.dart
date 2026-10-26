@@ -4,15 +4,6 @@ import '../services/transit_db_service.dart';
 
 class SettingsSheet extends StatefulWidget {
   static const String appVersion = '1.0.0+1';
-  static const String releaseDate = '2026-10-25';
-  static const List<String> changelogItems = [
-    'Bundled offline Singapore transit snapshot (5,208+ bus stops & 602+ routes)',
-    'Live LTA DataMall v3 arrival integration via .env and in-app settings',
-    'Dynamic service sorting (Starred services pinned, active arrivals prioritized)',
-    'Official LTA "Not In Operation" vs "No Est. Available" advisements',
-    '2-layer Double Decker badge & load-colored bottom bars (SEA/SDA/LSD)',
-    '4-tab navigation (Starred, Nearby, Search, MRT Map) with Light/Dark/Auto theme',
-  ];
 
   final UserSettings settings;
   final ValueChanged<UserSettings> onSettingsUpdated;
@@ -30,20 +21,12 @@ class SettingsSheet extends StatefulWidget {
 class _SettingsSheetState extends State<SettingsSheet> {
   late ThemeMode _themeMode;
   late int _autoRefresh;
-  late TextEditingController _keyController;
 
   @override
   void initState() {
     super.initState();
     _themeMode = widget.settings.themeMode;
     _autoRefresh = widget.settings.autoRefreshSeconds;
-    _keyController = TextEditingController(text: widget.settings.datamallKey);
-  }
-
-  @override
-  void dispose() {
-    _keyController.dispose();
-    super.dispose();
   }
 
   Future<void> _selectTheme(ThemeMode mode) async {
@@ -52,7 +35,6 @@ class _SettingsSheetState extends State<SettingsSheet> {
       widget.settings.copyWith(
         themeMode: mode,
         autoRefreshSeconds: _autoRefresh,
-        datamallKey: _keyController.text.trim(),
       ),
     );
     widget.onSettingsUpdated(updated);
@@ -60,10 +42,9 @@ class _SettingsSheetState extends State<SettingsSheet> {
 
   Future<void> _saveAll() async {
     final updated = await FavoritesService.saveSettings(
-      UserSettings(
+      widget.settings.copyWith(
         themeMode: _themeMode,
         autoRefreshSeconds: _autoRefresh,
-        datamallKey: _keyController.text.trim(),
       ),
     );
     widget.onSettingsUpdated(updated);
@@ -132,7 +113,7 @@ class _SettingsSheetState extends State<SettingsSheet> {
               ),
               const SizedBox(height: 12),
 
-              // 1. Theme Mode Selector (Inside Settings, matching React SettingsModal)
+              // 1. Theme Mode Selector
               const Text(
                 'Theme Mode',
                 style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
@@ -164,75 +145,7 @@ class _SettingsSheetState extends State<SettingsSheet> {
               ),
               const SizedBox(height: 18),
 
-              // 2. Offline Transit Database Info
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? const Color(0xFF0F172A).withValues(alpha: 0.7)
-                      : const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: isDark ? Colors.white10 : Colors.black12,
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Row(
-                          children: [
-                            Icon(
-                              Icons.storage_rounded,
-                              size: 16,
-                              color: Color(0xFF10B981),
-                            ),
-                            SizedBox(width: 6),
-                            Text(
-                              'Offline Transit Database',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF10B981).withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Text(
-                            'Bundled Ready',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF10B981),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      '${TransitDbService.stopCount} Bus Stops · ${TransitDbService.routeCount} Routes (${TransitDbService.versionHash})',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 18),
-
-              // 3. Auto-Refresh Interval
+              // 2. Auto-Refresh Interval
               const Text(
                 'Auto-Refresh Interval',
                 style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
@@ -274,32 +187,7 @@ class _SettingsSheetState extends State<SettingsSheet> {
               ),
               const SizedBox(height: 18),
 
-              // 4. LTA DataMall AccountKey
-              const Text(
-                'LTA DataMall AccountKey (Optional)',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _keyController,
-                obscureText: true,
-                style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
-                decoration: InputDecoration(
-                  hintText: 'LTA DataMall API Key...',
-                  isDense: true,
-                  filled: true,
-                  fillColor: isDark
-                      ? const Color(0xFF0F172A)
-                      : const Color(0xFFF8FAFC),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 18),
-
-              // 5. Version & Changelog
+              // 3. Offline Transit Database Info
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -320,13 +208,13 @@ class _SettingsSheetState extends State<SettingsSheet> {
                         const Row(
                           children: [
                             Icon(
-                              Icons.new_releases_rounded,
+                              Icons.storage_rounded,
                               size: 16,
-                              color: Color(0xFFE11D48),
+                              color: Color(0xFF10B981),
                             ),
                             SizedBox(width: 6),
                             Text(
-                              'What\'s New in v${SettingsSheet.appVersion}',
+                              'Offline Transit Database',
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
@@ -334,42 +222,33 @@ class _SettingsSheetState extends State<SettingsSheet> {
                             ),
                           ],
                         ),
-                        Text(
-                          SettingsSheet.releaseDate,
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: theme.colorScheme.onSurfaceVariant,
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color:
+                                const Color(0xFF10B981).withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Text(
+                            'Bundled Ready',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF10B981),
+                            ),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    ...SettingsSheet.changelogItems.map(
-                      (item) => Padding(
-                        padding: const EdgeInsets.only(bottom: 4),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              '• ',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFFE11D48),
-                              ),
-                            ),
-                            Expanded(
-                              child: Text(
-                                item,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: theme.colorScheme.onSurfaceVariant,
-                                  height: 1.3,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                    const SizedBox(height: 6),
+                    Text(
+                      '${TransitDbService.stopCount} Bus Stops · ${TransitDbService.routeCount} Routes (${TransitDbService.versionHash})',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: theme.colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],

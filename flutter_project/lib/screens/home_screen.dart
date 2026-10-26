@@ -146,35 +146,47 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (idx) {
-          setState(() => _currentIndex = idx);
-          if (idx == 0) _favoritesKey.currentState?.reload();
-          if (idx == 2) _searchKey.currentState?.reloadRecentOrDefault();
-        },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.star_outline_rounded),
-            selectedIcon: Icon(Icons.star_rounded, color: Color(0xFFE11D48)),
-            label: 'Starred',
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          border: Border(
+            top: BorderSide(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? const Color(0xFF1E293B)
+                  : const Color(0xFFF1F5F9),
+            ),
           ),
-          NavigationDestination(
-            icon: Icon(Icons.near_me_outlined),
-            selectedIcon: Icon(Icons.near_me_rounded, color: Color(0xFFE11D48)),
-            label: 'Nearby',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.search_rounded),
-            selectedIcon: Icon(Icons.search_rounded, color: Color(0xFFE11D48)),
-            label: 'Search',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.train_outlined),
-            selectedIcon: Icon(Icons.train_rounded, color: Color(0xFFE11D48)),
-            label: 'MRT Map',
-          ),
-        ],
+        ),
+        child: NavigationBar(
+          selectedIndex: _currentIndex,
+          elevation: 0,
+          onDestinationSelected: (idx) {
+            setState(() => _currentIndex = idx);
+            if (idx == 0) _favoritesKey.currentState?.reload();
+            if (idx == 2) _searchKey.currentState?.reloadRecentOrDefault();
+          },
+          destinations: const [
+            NavigationDestination(
+              icon: Icon(Icons.star_outline_rounded),
+              selectedIcon: Icon(Icons.star_rounded),
+              label: 'Starred',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.explore_outlined),
+              selectedIcon: Icon(Icons.explore_rounded),
+              label: 'Nearby',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.search_rounded),
+              selectedIcon: Icon(Icons.search_rounded),
+              label: 'Search',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.train_outlined),
+              selectedIcon: Icon(Icons.train_rounded),
+              label: 'MRT',
+            ),
+          ],
+        ),
       ),
     );
   }

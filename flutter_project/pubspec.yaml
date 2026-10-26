@@ -22,4 +22,5 @@ flutter:
   uses-material-design: true
   assets:
     - assets/sg_transit_snapshot.json
+    - assets/mrt-map.png
     - .env
