@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/bus_stop.dart';
+import 'lta_api_service.dart';
 
 class UserSettings {
   final String datamallKey;
@@ -32,8 +33,12 @@ class UserSettings {
     if (themeStr == 'light') mode = ThemeMode.light;
     if (themeStr == 'dark') mode = ThemeMode.dark;
 
+    final savedKey = (json['datamallKey'] as String? ?? '').trim();
+
     return UserSettings(
-      datamallKey: json['datamallKey'] as String? ?? '',
+      datamallKey: savedKey.isNotEmpty
+          ? savedKey
+          : LtaApiService.defaultAccountKey,
       autoRefreshSeconds: (json['autoRefreshSeconds'] as num?)?.toInt() ?? 30,
       themeMode: mode,
     );
@@ -249,11 +254,13 @@ class FavoritesService {
   static Future<UserSettings> getSettings() async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_settingsKey);
-    if (raw == null || raw.isEmpty) return const UserSettings();
+    if (raw == null || raw.isEmpty) {
+      return UserSettings(datamallKey: LtaApiService.defaultAccountKey);
+    }
     try {
       return UserSettings.fromJson(jsonDecode(raw) as Map<String, dynamic>);
     } catch (_) {
-      return const UserSettings();
+      return UserSettings(datamallKey: LtaApiService.defaultAccountKey);
     }
   }
 
