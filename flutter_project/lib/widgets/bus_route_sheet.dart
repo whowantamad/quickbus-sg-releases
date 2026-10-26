@@ -36,6 +36,18 @@ class _BusRouteSheetState extends State<BusRouteSheet> {
 
   int _resolveInitialDirection(BusRouteInfo routeInfo) {
     if (widget.initialDirection != null) return widget.initialDirection!;
+    if (routeInfo.isDualLoop) {
+      if (widget.currentStopCode != null) {
+        final inWing1 = routeInfo.direction1Stops
+            .any((s) => s.code == widget.currentStopCode);
+        final inWing2 = routeInfo.direction2Stops
+                ?.any((s) => s.code == widget.currentStopCode) ??
+            false;
+        if (inWing1 && !inWing2) return 1;
+        if (!inWing1 && inWing2) return 2;
+      }
+      return 0; // Show all routes by default
+    }
     if (widget.currentStopCode != null &&
         routeInfo.direction2Stops != null &&
         routeInfo.direction2Stops!.isNotEmpty) {
@@ -64,9 +76,15 @@ class _BusRouteSheetState extends State<BusRouteSheet> {
     final activeDir = _activeDirection ?? _resolveInitialDirection(routeInfo);
     final hasTwoDirections = routeInfo.direction2Stops != null &&
         routeInfo.direction2Stops!.isNotEmpty;
-    final activeStops = activeDir == 1
-        ? routeInfo.direction1Stops
-        : (routeInfo.direction2Stops ?? routeInfo.direction1Stops);
+    final activeStops = routeInfo.isDualLoop
+        ? (activeDir == 0
+            ? (routeInfo.allStops ?? routeInfo.direction1Stops)
+            : activeDir == 1
+                ? routeInfo.direction1Stops
+                : (routeInfo.direction2Stops ?? routeInfo.direction1Stops))
+        : (activeDir == 2
+            ? (routeInfo.direction2Stops ?? routeInfo.direction1Stops)
+            : routeInfo.direction1Stops);
 
     final activeOrigin = routeInfo.isDualLoop
         ? routeInfo.origin
@@ -74,9 +92,11 @@ class _BusRouteSheetState extends State<BusRouteSheet> {
             ? routeInfo.direction1Name
             : routeInfo.origin;
     final activeDestination = routeInfo.isDualLoop
-        ? (activeDir == 2
-            ? (routeInfo.direction2Name ?? routeInfo.destination)
-            : routeInfo.direction1Name)
+        ? (activeDir == 0
+            ? '${routeInfo.direction1Name} & ${routeInfo.direction2Name}'
+            : activeDir == 2
+                ? (routeInfo.direction2Name ?? routeInfo.destination)
+                : routeInfo.direction1Name)
         : (activeDir == 2
             ? (routeInfo.direction2Name ?? routeInfo.origin)
             : routeInfo.direction1Name);
@@ -87,7 +107,7 @@ class _BusRouteSheetState extends State<BusRouteSheet> {
     final schedule = TransitDbService.getStopServiceSchedule(
       widget.serviceNo,
       stopCode: scheduleStopCode,
-      loopWing: activeDir,
+      loopWing: activeDir == 0 ? 1 : activeDir,
     );
 
     return Container(
@@ -198,8 +218,40 @@ class _BusRouteSheetState extends State<BusRouteSheet> {
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                // Direction Toggle (when 2 directions exist)
-                if (hasTwoDirections) ...[
+                // Direction / Route Selector (Dual Loop or Bidirectional)
+                if (routeInfo.isDualLoop) ...[
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        _buildDirectionChip(
+                          isDark,
+                          direction: 0,
+                          label: 'All Routes (${routeInfo.allStops?.length ?? 0})',
+                          active: activeDir == 0,
+                          expanded: false,
+                        ),
+                        const SizedBox(width: 8),
+                        _buildDirectionChip(
+                          isDark,
+                          direction: 1,
+                          label: '1st Visit · ${routeInfo.direction1Name}',
+                          active: activeDir == 1,
+                          expanded: false,
+                        ),
+                        const SizedBox(width: 8),
+                        _buildDirectionChip(
+                          isDark,
+                          direction: 2,
+                          label: '2nd Visit · ${routeInfo.direction2Name}',
+                          active: activeDir == 2,
+                          expanded: false,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ] else if (hasTwoDirections) ...[
                   Row(
                     children: [
                       _buildDirectionChip(
@@ -380,17 +432,35 @@ class _BusRouteSheetState extends State<BusRouteSheet> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   // Line 1: Bus stop name
-                                  Text(
-                                    stop.name,
-                                    style: TextStyle(
-                                      fontSize: 12.5,
-                                      fontWeight: FontWeight.bold,
-                                      color: isCurrent
-                                          ? const Color(0xFFE11D48)
-                                          : null,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                                  Row(
+                                    children: [
+                                      Flexible(
+                                        child: Text(
+                                          stop.name,
+                                          style: TextStyle(
+                                            fontSize: 12.5,
+                                            fontWeight: FontWeight.bold,
+                                            color: isCurrent
+                                                ? const Color(0xFFE11D48)
+                                                : null,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      if (routeInfo.isDualLoop && activeDir == 0) ...[
+                                        if (entry.key == 0) ...[
+                                          const SizedBox(width: 6),
+                                          _buildStopBadge('1st Visit', isDark),
+                                        ] else if (entry.key == (routeInfo.direction1Stops.length - 1)) ...[
+                                          const SizedBox(width: 6),
+                                          _buildStopBadge('2nd Visit', isDark, isRose: true),
+                                        ] else if (entry.key == activeStops.length - 1) ...[
+                                          const SizedBox(width: 6),
+                                          _buildStopBadge('Terminus', isDark),
+                                        ],
+                                      ],
+                                    ],
                                   ),
                                   const SizedBox(height: 2),
                                   // Line 2: bus stop code | road name
@@ -462,35 +532,58 @@ class _BusRouteSheetState extends State<BusRouteSheet> {
     required int direction,
     required String label,
     required bool active,
+    bool expanded = true,
   }) {
-    return Expanded(
-      child: InkWell(
-        onTap: () => setState(() => _activeDirection = direction),
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-          decoration: BoxDecoration(
+    final chip = InkWell(
+      onTap: () => setState(() => _activeDirection = direction),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+        decoration: BoxDecoration(
+          color: active
+              ? const Color(0xFFE11D48)
+              : (isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9)),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
             color: active
                 ? const Color(0xFFE11D48)
-                : (isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9)),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: active
-                  ? const Color(0xFFE11D48)
-                  : (isDark ? Colors.white10 : Colors.black12),
-            ),
+                : (isDark ? Colors.white10 : Colors.black12),
           ),
-          alignment: Alignment.center,
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-              color: active ? Colors.white : null,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            color: active ? Colors.white : null,
           ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ),
+    );
+
+    return expanded ? Expanded(child: chip) : chip;
+  }
+
+  Widget _buildStopBadge(String label, bool isDark, {bool isRose = false}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+      decoration: BoxDecoration(
+        color: isRose
+            ? const Color(0xFFE11D48).withValues(alpha: 0.15)
+            : (isDark ? Colors.white12 : Colors.black12),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 9.5,
+          fontWeight: FontWeight.bold,
+          color: isRose
+              ? const Color(0xFFE11D48)
+              : (isDark ? Colors.white70 : Colors.black87),
         ),
       ),
     );

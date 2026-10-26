@@ -61,6 +61,47 @@ void main() {
     );
   });
 
+  test('Dual-loop service separates 1st and 2nd visit arrivals and exposes all routes', () async {
+    await TransitDbService.init();
+
+    const etaVisit1 = '2026-10-26T17:40:00+08:00';
+    const etaVisit2 = '2026-10-26T17:42:00+08:00';
+    final raw = [
+      const BusArrivalService(
+        serviceNo: '358',
+        operator: 'GAS',
+        nextBus: NextBusInfo(estimatedArrival: etaVisit1, visitNumber: 1),
+        nextBus2: NextBusInfo(estimatedArrival: etaVisit2, visitNumber: 2),
+      ),
+    ];
+
+    final expanded = TransitDbService.expandServicesForStop(raw, '77009');
+    expect(expanded.length, equals(2));
+
+    // Wing 1 (Visit 1: Pasir Ris Dr 10)
+    final wing1 = expanded[0];
+    expect(wing1.isFirstVisit, isTrue);
+    expect(wing1.isSecondVisit, isFalse);
+    expect(wing1.loopDirectionLabel, equals('Pasir Ris Dr 10'));
+    expect(wing1.nextBus?.estimatedArrival, equals(etaVisit1));
+    expect(wing1.nextBus2, isNull);
+
+    // Wing 2 (Visit 2: Pasir Ris Dr 4)
+    final wing2 = expanded[1];
+    expect(wing2.isFirstVisit, isFalse);
+    expect(wing2.isSecondVisit, isTrue);
+    expect(wing2.loopDirectionLabel, equals('Pasir Ris Dr 4'));
+    expect(wing2.nextBus?.estimatedArrival, equals(etaVisit2));
+    expect(wing2.nextBus2, isNull);
+
+    // Check all routes on BusRouteInfo
+    final routeInfo = TransitDbService.getBusRouteAndSchedule('358');
+    expect(routeInfo.isDualLoop, isTrue);
+    expect(routeInfo.allStops?.length, equals(23));
+    expect(routeInfo.direction1Stops.length, equals(12));
+    expect(routeInfo.direction2Stops?.length, equals(12));
+  });
+
   test('FavoritesService caches starred stops and caps recent stop history at 30', () async {
     SharedPreferences.setMockInitialValues({});
     await FavoritesService.getFavorites();

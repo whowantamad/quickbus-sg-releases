@@ -40,6 +40,7 @@ class BusRouteInfo {
   final BusSchedule schedule;
   final List<BusStop> direction1Stops;
   final List<BusStop>? direction2Stops;
+  final List<BusStop>? allStops;
 
   const BusRouteInfo({
     required this.serviceNo,
@@ -52,6 +53,7 @@ class BusRouteInfo {
     required this.schedule,
     required this.direction1Stops,
     this.direction2Stops,
+    this.allStops,
   });
 }
 
@@ -60,14 +62,12 @@ class _DualLoopMeta {
   final int? splitIndex;
   final String wing1Label;
   final String wing2Label;
-  final bool swapDisplayOrder;
 
   const _DualLoopMeta({
     required this.interchangeCodes,
     this.splitIndex,
     required this.wing1Label,
     required this.wing2Label,
-    this.swapDisplayOrder = false,
   });
 }
 
@@ -84,25 +84,21 @@ class TransitDbService {
       interchangeCodes: ['77009'],
       wing1Label: 'Pasir Ris Dr 10',
       wing2Label: 'Pasir Ris Dr 4',
-      swapDisplayOrder: true,
     ),
     '359': _DualLoopMeta(
       interchangeCodes: ['77009'],
       wing1Label: 'Pasir Ris St 71',
       wing2Label: 'Pasir Ris St 21',
-      swapDisplayOrder: true,
     ),
     '291': _DualLoopMeta(
       interchangeCodes: ['75009'],
       wing1Label: 'Tampines St 81',
       wing2Label: 'Tampines St 33',
-      swapDisplayOrder: true,
     ),
     '293': _DualLoopMeta(
       interchangeCodes: ['75009'],
       wing1Label: 'Tampines St 71',
       wing2Label: 'Tampines St 42',
-      swapDisplayOrder: true,
     ),
     '811': _DualLoopMeta(
       interchangeCodes: ['59009', '59072', '59159'],
@@ -376,11 +372,7 @@ class TransitDbService {
         if (matches.length > 1 && loopWing != null) {
           final config = _dualLoopConfig[svcNo];
           if (config != null && config.interchangeCodes.contains(targetCode)) {
-            if (config.swapDisplayOrder) {
-              chosenLine = loopWing == 1 ? matches[1] : matches[0];
-            } else {
-              chosenLine = loopWing == 2 ? matches[1] : matches[0];
-            }
+            chosenLine = loopWing == 2 ? matches[1] : matches[0];
           }
         }
 
@@ -468,6 +460,10 @@ class TransitDbService {
         if (dir2Codes == null || dir2Codes.isEmpty) {
           final splitIdx = _findDualLoopSplitIndex(dir1Codes, serviceNo);
           if (splitIdx != -1) {
+            final fullStops = dir1Codes
+                .map(getStopByCode)
+                .whereType<BusStop>()
+                .toList();
             final rawWing1Stops = dir1Codes
                 .sublist(0, splitIdx + 1)
                 .map(getStopByCode)
@@ -488,25 +484,10 @@ class TransitDbService {
             final w2Label =
                 config?.wing2Label ?? _getMidpointRoadName(rawWing2Stops);
 
-            if (config?.swapDisplayOrder == true) {
-              return BusRouteInfo(
-                serviceNo: serviceNo,
-                origin: origin,
-                destination: w2Label,
-                isLoop: true,
-                isDualLoop: true,
-                direction1Name: w2Label,
-                direction2Name: w1Label,
-                schedule: schedule,
-                direction1Stops: rawWing2Stops,
-                direction2Stops: rawWing1Stops,
-              );
-            }
-
             return BusRouteInfo(
               serviceNo: serviceNo,
               origin: origin,
-              destination: w1Label,
+              destination: '$w1Label / $w2Label',
               isLoop: true,
               isDualLoop: true,
               direction1Name: w1Label,
@@ -514,6 +495,7 @@ class TransitDbService {
               schedule: schedule,
               direction1Stops: rawWing1Stops,
               direction2Stops: rawWing2Stops,
+              allStops: fullStops,
             );
           }
         }
@@ -691,18 +673,46 @@ class TransitDbService {
     for (final svc in rawServices) {
       if (isDualLoopAtStop(svc.serviceNo, stopCode)) {
         final routeInfo = getBusRouteAndSchedule(svc.serviceNo);
+
+        final allBuses = [
+          if (svc.nextBus != null) svc.nextBus!,
+          if (svc.nextBus2 != null) svc.nextBus2!,
+          if (svc.nextBus3 != null) svc.nextBus3!,
+        ];
+
+        final hasExplicitVisits = allBuses.any((b) => b.visitNumber != null);
+        final v1Buses = allBuses
+            .where((b) => b.visitNumber == null || b.visitNumber == 1)
+            .toList();
+        final v2Buses = allBuses
+            .where((b) => b.visitNumber == 2)
+            .toList();
+
+        final wing1Buses = hasExplicitVisits ? v1Buses : allBuses;
+        final wing2Buses = hasExplicitVisits ? v2Buses : allBuses;
+
         expanded.add(
           svc.copyWith(
             loopWing: 1,
+            visitNumber: 1,
             loopDirectionLabel: routeInfo.direction1Name,
             routeKey: '${svc.serviceNo}-wing-1',
+            clearArrivals: true,
+            nextBus: wing1Buses.isNotEmpty ? wing1Buses[0] : null,
+            nextBus2: wing1Buses.length > 1 ? wing1Buses[1] : null,
+            nextBus3: wing1Buses.length > 2 ? wing1Buses[2] : null,
           ),
         );
         expanded.add(
           svc.copyWith(
             loopWing: 2,
+            visitNumber: 2,
             loopDirectionLabel: routeInfo.direction2Name ?? routeInfo.origin,
             routeKey: '${svc.serviceNo}-wing-2',
+            clearArrivals: true,
+            nextBus: wing2Buses.isNotEmpty ? wing2Buses[0] : null,
+            nextBus2: wing2Buses.length > 1 ? wing2Buses[1] : null,
+            nextBus3: wing2Buses.length > 2 ? wing2Buses[2] : null,
           ),
         );
       } else {

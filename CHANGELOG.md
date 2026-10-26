@@ -2,6 +2,22 @@
 
 All notable changes to **QuickBus SG** are documented in this file.
 
+## [1.0.6+7] - 2026-10-26
+
+### Fixed & Improved
+- **Dual-Loop Visit Routing & Arrival Separation (`bus_arrival.dart`, `transit_db_service.dart`, `lta_api_service.dart`)**:
+  - Parsed LTA DataMall `VisitNumber` (`"1"` vs `"2"`) to correctly separate arrival timings for bus services visiting an interchange twice (e.g., Bus 358 at Pasir Ris Interchange).
+  - Aligned loop wings to chronological visits (Wing 1 / West loop = Visit 1, Wing 2 / East loop = Visit 2) without inverted display order.
+- **Dual-Loop Arrival Card Visual Labels (`bus_arrival_card.dart`)**:
+  - Added dedicated `1st Visit` (muted chip) and `2nd Visit` (rose highlighted chip) badges beside the service number badge for clear destination distinction.
+- **Full Route & Dual Circuit Display in Route Sheet (`bus_route_sheet.dart`, `transit_db_service.dart`)**:
+  - Added multi-tab navigation to the Route & Schedule sheet: `All Routes (Full Circuit)`, `1st Visit · <Direction>`, and `2nd Visit · <Direction>`.
+  - Added visual sequence markers (`1st Visit`, `2nd Visit`, `Terminus`) along the stop timeline for full circuit view.
+- **Prebuilt Android Release APK (`releases/`)**:
+  - Built `v1.0.6+7` universal ARM release APK and maintained 5-APK release retention policy.
+
+---
+
 ## [1.0.5+6] - 2026-10-26
 
 ### Fixed & Improved

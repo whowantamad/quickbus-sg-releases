@@ -7,6 +7,7 @@ class NextBusInfo {
   final String? destinationCode;
   final String? latitude;
   final String? longitude;
+  final int? visitNumber;
 
   const NextBusInfo({
     this.estimatedArrival,
@@ -17,6 +18,7 @@ class NextBusInfo {
     this.destinationCode,
     this.latitude,
     this.longitude,
+    this.visitNumber,
   });
 
   factory NextBusInfo.fromJson(Map<String, dynamic> json) {
@@ -29,6 +31,7 @@ class NextBusInfo {
       destinationCode: json['DestinationCode']?.toString(),
       latitude: json['Latitude']?.toString(),
       longitude: json['Longitude']?.toString(),
+      visitNumber: int.tryParse(json['VisitNumber']?.toString() ?? ''),
     );
   }
 
@@ -58,6 +61,7 @@ class BusArrivalService {
   final int? loopWing; // 1 or 2 for dual-loop services
   final String? loopDirectionLabel;
   final String? routeKey;
+  final int? visitNumber; // 1 or 2
 
   const BusArrivalService({
     required this.serviceNo,
@@ -68,9 +72,13 @@ class BusArrivalService {
     this.loopWing,
     this.loopDirectionLabel,
     this.routeKey,
+    this.visitNumber,
   });
 
   String get effectiveKey => routeKey ?? serviceNo;
+
+  bool get isFirstVisit => loopWing == 1 || visitNumber == 1;
+  bool get isSecondVisit => loopWing == 2 || visitNumber == 2;
 
   bool get hasArrival =>
       nextBus?.minutesToArrival != null ||
@@ -83,19 +91,22 @@ class BusArrivalService {
     NextBusInfo? nextBus,
     NextBusInfo? nextBus2,
     NextBusInfo? nextBus3,
+    bool clearArrivals = false,
     int? loopWing,
     String? loopDirectionLabel,
     String? routeKey,
+    int? visitNumber,
   }) {
     return BusArrivalService(
       serviceNo: serviceNo ?? this.serviceNo,
       operator: operator ?? this.operator,
-      nextBus: nextBus ?? this.nextBus,
-      nextBus2: nextBus2 ?? this.nextBus2,
-      nextBus3: nextBus3 ?? this.nextBus3,
+      nextBus: clearArrivals ? nextBus : (nextBus ?? this.nextBus),
+      nextBus2: clearArrivals ? nextBus2 : (nextBus2 ?? this.nextBus2),
+      nextBus3: clearArrivals ? nextBus3 : (nextBus3 ?? this.nextBus3),
       loopWing: loopWing ?? this.loopWing,
       loopDirectionLabel: loopDirectionLabel ?? this.loopDirectionLabel,
       routeKey: routeKey ?? this.routeKey,
+      visitNumber: visitNumber ?? this.visitNumber,
     );
   }
 
