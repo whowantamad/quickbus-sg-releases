@@ -1,0 +1,9 @@
+{
+  "appId": "sg.quickbus.app",
+  "appName": "QuickBus SG",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https"
+  }
+}

@@ -1,0 +1,341 @@
+import 'dart:async';
+import 'package:flutter/material.dart';
+import '../models/bus_stop.dart';
+import '../models/bus_arrival.dart';
+import '../services/lta_api_service.dart';
+import '../services/favorites_service.dart';
+import '../services/transit_db_service.dart';
+import '../widgets/bus_arrival_card.dart';
+import '../widgets/bus_route_sheet.dart';
+
+class BusStopDetailScreen extends StatefulWidget {
+  final BusStop busStop;
+
+  const BusStopDetailScreen({super.key, required this.busStop});
+
+  @override
+  State<BusStopDetailScreen> createState() => _BusStopDetailScreenState();
+}
+
+class _BusStopDetailScreenState extends State<BusStopDetailScreen> {
+  late BusStop _currentStop;
+  List<BusArrivalService> _services = [];
+  List<String> _starredServices = [];
+  bool _isLoading = true;
+  bool _isStarred = false;
+  String _searchQuery = '';
+  Timer? _refreshTimer;
+  UserSettings _settings = const UserSettings();
+
+  @override
+  void initState() {
+    super.initState();
+    _currentStop = widget.busStop;
+    _initForStop(_currentStop);
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _initForStop(BusStop stop) async {
+    _refreshTimer?.cancel();
+    setState(() {
+      _currentStop = stop;
+      // Offline-first: render all services for this stop immediately at 0ms
+      _services = TransitDbService.buildOfflineServices(stop);
+      _isLoading = true;
+    });
+
+    await FavoritesService.recordStopOpen(stop.code);
+    final settings = await FavoritesService.getSettings();
+    final starred = await FavoritesService.isStarred(stop.code);
+    final starredSvcs =
+        await FavoritesService.getStarredServicesForStop(stop.code);
+
+    if (mounted) {
+      setState(() {
+        _settings = settings;
+        _isStarred = starred;
+        _starredServices = starredSvcs;
+      });
+    }
+
+    await _fetchArrivals(silent: false);
+    _startTimer();
+  }
+
+  void _startTimer() {
+    _refreshTimer?.cancel();
+    if (_settings.autoRefreshSeconds <= 0) return;
+    _refreshTimer = Timer.periodic(
+      Duration(seconds: _settings.autoRefreshSeconds),
+      (_) {
+        if (mounted) _fetchArrivals(silent: true);
+      },
+    );
+  }
+
+  Future<void> _fetchArrivals({bool silent = false}) async {
+    if (!silent && mounted) {
+      setState(() => _isLoading = true);
+    }
+
+    final api = LtaApiService(accountKey: _settings.datamallKey);
+    final liveList = await api.getBusArrivals(
+      _currentStop.code,
+      stopServices: _currentStop.services,
+    );
+
+    final activeMap = <String, BusArrivalService>{
+      for (final s in liveList) s.serviceNo: s,
+    };
+
+    final rawServices = <BusArrivalService>[];
+    final seen = <String>{};
+
+    for (final svcNo in _currentStop.services) {
+      seen.add(svcNo);
+      final liveSvc = activeMap[svcNo];
+      if (liveSvc != null) {
+        rawServices.add(liveSvc);
+      } else {
+        rawServices.add(BusArrivalService(serviceNo: svcNo, operator: ''));
+      }
+    }
+
+    for (final liveSvc in liveList) {
+      if (!seen.contains(liveSvc.serviceNo)) {
+        rawServices.add(liveSvc);
+      }
+    }
+
+    final expanded = TransitDbService.expandServicesForStop(
+      rawServices,
+      _currentStop.code,
+    );
+
+    if (mounted) {
+      setState(() {
+        _services = expanded;
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _handleToggleStopStar() async {
+    final nowStarred = await FavoritesService.toggleStarred(
+      _currentStop.code,
+      customName: _currentStop.name,
+    );
+    if (mounted) {
+      setState(() => _isStarred = nowStarred);
+    }
+  }
+
+  Future<void> _handleToggleServiceStar(String svcKey) async {
+    final updated = await FavoritesService.toggleStarredServiceForStop(
+      _currentStop.code,
+      svcKey,
+    );
+    if (mounted) {
+      setState(() => _starredServices = updated);
+    }
+  }
+
+  void _openRouteSheet(BusArrivalService svc) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => BusRouteSheet(
+        serviceNo: svc.serviceNo,
+        currentStopCode: _currentStop.code,
+        initialDirection: svc.loopWing,
+        onSelectStop: (newStop) {
+          _initForStop(newStop);
+        },
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    // Dynamic sorting:
+    // 1. Starred services pinned at the top
+    // 2. Services with live arrival times right after favorites
+    // 3. Services without arrival times at the bottom
+    final filtered = _services.where((s) {
+      if (_searchQuery.trim().isEmpty) return true;
+      final q = _searchQuery.trim().toLowerCase();
+      return s.serviceNo.toLowerCase().contains(q) ||
+          (s.loopDirectionLabel != null &&
+              s.loopDirectionLabel!.toLowerCase().contains(q));
+    }).toList()
+      ..sort((a, b) {
+        final keyA = a.effectiveKey;
+        final keyB = b.effectiveKey;
+        final starA = _starredServices.contains(keyA);
+        final starB = _starredServices.contains(keyB);
+        if (starA && !starB) return -1;
+        if (!starA && starB) return 1;
+        if (starA && starB) {
+          return _starredServices
+              .indexOf(keyA)
+              .compareTo(_starredServices.indexOf(keyB));
+        }
+
+        final arrA = a.hasArrival;
+        final arrB = b.hasArrival;
+        if (arrA && !arrB) return -1;
+        if (!arrA && arrB) return 1;
+        return 0;
+      });
+
+    return Scaffold(
+      appBar: AppBar(
+        titleSpacing: 0,
+        centerTitle: true,
+        title: Column(
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: Text(
+                    _currentStop.name,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.white12 : Colors.black12,
+                    borderRadius: BorderRadius.circular(5),
+                  ),
+                  child: Text(
+                    _currentStop.code,
+                    style: const TextStyle(
+                      fontFamily: 'monospace',
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 2),
+            Text(
+              _currentStop.road,
+              style: TextStyle(
+                fontSize: 11,
+                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+        actions: [
+          IconButton(
+            icon: Icon(
+              _isStarred ? Icons.star_rounded : Icons.star_outline_rounded,
+              color: _isStarred ? const Color(0xFFF59E0B) : null,
+            ),
+            onPressed: _handleToggleStopStar,
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          // Filter services search bar
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
+            child: TextField(
+              onChanged: (val) => setState(() => _searchQuery = val),
+              style: const TextStyle(fontSize: 12),
+              decoration: InputDecoration(
+                hintText: 'Filter bus service (e.g. 147)...',
+                prefixIcon: const Icon(Icons.search_rounded, size: 18),
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                filled: true,
+                fillColor: isDark ? const Color(0xFF131B2E) : Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: isDark ? Colors.white10 : Colors.black12,
+                  ),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: isDark ? Colors.white10 : Colors.black12,
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // Pull-Down to Refresh Bus Services List
+          Expanded(
+            child: RefreshIndicator(
+              color: const Color(0xFFE11D48),
+              onRefresh: () async {
+                final start = DateTime.now();
+                await _fetchArrivals(silent: true);
+                final elapsed = DateTime.now().difference(start).inMilliseconds;
+                if (elapsed < 500) {
+                  await Future.delayed(Duration(milliseconds: 500 - elapsed));
+                }
+              },
+              child: filtered.isEmpty
+                  ? ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      children: const [
+                        SizedBox(height: 120),
+                        Center(
+                          child: Text(
+                            '—',
+                            style: TextStyle(color: Colors.grey, fontSize: 12),
+                          ),
+                        ),
+                      ],
+                    )
+                  : ListView.builder(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.only(top: 4, bottom: 28),
+                      itemCount: filtered.length,
+                      itemBuilder: (context, index) {
+                        final svc = filtered[index];
+                        final svcKey = svc.effectiveKey;
+                        return BusArrivalCard(
+                          key: ValueKey(svcKey),
+                          service: svc,
+                          currentStopCode: _currentStop.code,
+                          isStarred: _starredServices.contains(svcKey),
+                          isLoading: _isLoading,
+                          onToggleStar: () => _handleToggleServiceStar(svcKey),
+                          onTap: () => _openRouteSheet(svc),
+                        );
+                      },
+                    ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

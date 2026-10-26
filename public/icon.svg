@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#e11d48" />
+      <stop offset="100%" stop-color="#ef4444" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="116" fill="url(#bg)" />
+  <!-- Lightning bolt ('S') -->
+  <path
+    d="M238 116 L118 278 H216 L196 396 L316 234 H218 Z"
+    fill="#ffffff"
+    stroke="#ffffff"
+    stroke-width="12"
+    stroke-linejoin="round"
+  />
+  <!-- Bold 'G' aligned to the bottom of the lightning bolt -->
+  <text
+    x="278"
+    y="396"
+    fill="#ffffff"
+    font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+    font-weight="900"
+    font-size="185"
+    letter-spacing="-6"
+  >G</text>
+</svg>
