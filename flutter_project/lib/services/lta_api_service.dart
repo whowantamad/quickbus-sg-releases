@@ -42,22 +42,21 @@ class LtaApiService {
     String busStopCode, {
     List<String>? stopServices,
   }) async {
-    final resolvedKey = (accountKey != null && _sanitizeKey(accountKey!).isNotEmpty)
-        ? _sanitizeKey(accountKey!)
-        : defaultAccountKey;
+    final resolvedKey =
+        (accountKey != null && _sanitizeKey(accountKey!).isNotEmpty)
+            ? _sanitizeKey(accountKey!)
+            : defaultAccountKey;
 
     if (resolvedKey.isNotEmpty) {
       try {
         final url = Uri.parse('$baseUrl/BusArrival?BusStopCode=$busStopCode');
-        final response = await http
-            .get(
-              url,
-              headers: {
-                'AccountKey': resolvedKey,
-                'accept': 'application/json',
-              },
-            )
-            .timeout(const Duration(seconds: 8));
+        final response = await http.get(
+          url,
+          headers: {
+            'AccountKey': resolvedKey,
+            'accept': 'application/json',
+          },
+        ).timeout(const Duration(seconds: 8));
 
         if (response.statusCode == 200) {
           final data = jsonDecode(response.body) as Map<String, dynamic>;
@@ -68,7 +67,8 @@ class LtaApiService {
               .map((s) => BusArrivalService.fromJson(s as Map<String, dynamic>))
               .toList();
         } else {
-          lastErrorMessage = response.statusCode == 401 || response.statusCode == 403
+          lastErrorMessage = response.statusCode == 401 ||
+                  response.statusCode == 403
               ? 'Invalid or expired LTA DataMall Key (${response.statusCode})'
               : 'LTA DataMall API error (${response.statusCode})';
         }

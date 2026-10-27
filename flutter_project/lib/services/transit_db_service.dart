@@ -201,7 +201,7 @@ class TransitDbService {
       for (final stop in allStops)
         (
           stop: stop,
-          dist: _distanceMeters(lat, lng, stop.lat, stop.lng).round(),
+          dist: distanceMeters(lat, lng, stop.lat, stop.lng).round(),
         ),
     ]..sort((a, b) => a.dist.compareTo(b.dist));
 
@@ -212,7 +212,7 @@ class TransitDbService {
   }
 
   /// Flat-earth Pythagorean distance calibrated for Singapore (~1.35°N on WGS-84).
-  static double _distanceMeters(
+  static double distanceMeters(
     double lat1,
     double lon1,
     double lat2,

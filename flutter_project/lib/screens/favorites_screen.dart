@@ -142,7 +142,8 @@ class FavoritesScreenState extends State<FavoritesScreen> {
                         width: 48,
                         height: 48,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF59E0B).withValues(alpha: 0.14),
+                          color:
+                              const Color(0xFFF59E0B).withValues(alpha: 0.14),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: const Icon(

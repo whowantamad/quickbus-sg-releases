@@ -1,6 +1,7 @@
 class NextBusInfo {
   final String? estimatedArrival;
-  final String? load; // SEA (Seats Available), SDA (Standing Available), LSD (Limited Standing)
+  final String?
+      load; // SEA (Seats Available), SDA (Standing Available), LSD (Limited Standing)
   final String? feature; // WAB (Wheelchair Accessible)
   final String? type; // SD (Single Deck), DD (Double Deck), BD (Bendy)
   final String? originCode;

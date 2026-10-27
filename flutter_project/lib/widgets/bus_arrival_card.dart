@@ -66,10 +66,13 @@ class BusArrivalCard extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Container(
-                          constraints: const BoxConstraints(minWidth: 48, minHeight: 32),
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          constraints:
+                              const BoxConstraints(minWidth: 48, minHeight: 32),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 5),
                           decoration: BoxDecoration(
-                            color: isDark ? Colors.white : const Color(0xFF0F172A),
+                            color:
+                                isDark ? Colors.white : const Color(0xFF0F172A),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           alignment: Alignment.center,
@@ -79,7 +82,9 @@ class BusArrivalCard extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w900,
-                              color: isDark ? const Color(0xFF0F172A) : Colors.white,
+                              color: isDark
+                                  ? const Color(0xFF0F172A)
+                                  : Colors.white,
                               letterSpacing: -0.5,
                             ),
                           ),
@@ -87,12 +92,15 @@ class BusArrivalCard extends StatelessWidget {
                         if (service.isSecondVisit) ...[
                           const SizedBox(width: 6),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2.5),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFE11D48).withValues(alpha: 0.15),
+                              color: const Color(0xFFE11D48)
+                                  .withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(6),
                               border: Border.all(
-                                color: const Color(0xFFE11D48).withValues(alpha: 0.35),
+                                color: const Color(0xFFE11D48)
+                                    .withValues(alpha: 0.35),
                                 width: 0.8,
                               ),
                             ),
@@ -108,9 +116,12 @@ class BusArrivalCard extends StatelessWidget {
                         ] else if (service.isFirstVisit) ...[
                           const SizedBox(width: 6),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2.5),
                             decoration: BoxDecoration(
-                              color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.06),
+                              color: isDark
+                                  ? Colors.white10
+                                  : Colors.black.withValues(alpha: 0.06),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
@@ -215,18 +226,22 @@ class BusArrivalCard extends StatelessWidget {
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
-                      isStarred ? Icons.star_rounded : Icons.star_outline_rounded,
+                      isStarred
+                          ? Icons.star_rounded
+                          : Icons.star_outline_rounded,
                       size: 18,
                       color: isStarred
                           ? const Color(0xFFF59E0B)
-                          : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+                          : theme.colorScheme.onSurfaceVariant
+                              .withValues(alpha: 0.4),
                     ),
                   ),
                 ),
               Icon(
                 Icons.chevron_right_rounded,
                 size: 18,
-                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                color:
+                    theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
               ),
             ],
           ),

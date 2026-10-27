@@ -101,8 +101,8 @@ class _BusRouteSheetState extends State<BusRouteSheet> {
             ? (routeInfo.direction2Name ?? routeInfo.origin)
             : routeInfo.direction1Name);
 
-    final scheduleStopCode =
-        widget.currentStopCode ?? (activeStops.isNotEmpty ? activeStops.first.code : null);
+    final scheduleStopCode = widget.currentStopCode ??
+        (activeStops.isNotEmpty ? activeStops.first.code : null);
     final scheduleStop = TransitDbService.getStopByCode(scheduleStopCode);
     final schedule = TransitDbService.getStopServiceSchedule(
       widget.serviceNo,
@@ -125,7 +125,8 @@ class _BusRouteSheetState extends State<BusRouteSheet> {
               color: isDark
                   ? const Color(0xFF0C1220).withValues(alpha: 0.7)
                   : const Color(0xFFF8FAFC),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(24)),
               border: Border(
                 bottom: BorderSide(
                   color: isDark ? Colors.white10 : Colors.black12,
@@ -227,7 +228,8 @@ class _BusRouteSheetState extends State<BusRouteSheet> {
                         _buildDirectionChip(
                           isDark,
                           direction: 0,
-                          label: 'All Routes (${routeInfo.allStops?.length ?? 0})',
+                          label:
+                              'All Routes (${routeInfo.allStops?.length ?? 0})',
                           active: activeDir == 0,
                           expanded: false,
                         ),
@@ -264,7 +266,8 @@ class _BusRouteSheetState extends State<BusRouteSheet> {
                       _buildDirectionChip(
                         isDark,
                         direction: 2,
-                        label: 'To ${routeInfo.direction2Name ?? routeInfo.origin}',
+                        label:
+                            'To ${routeInfo.direction2Name ?? routeInfo.origin}',
                         active: activeDir == 2,
                       ),
                     ],
@@ -448,14 +451,19 @@ class _BusRouteSheetState extends State<BusRouteSheet> {
                                           overflow: TextOverflow.ellipsis,
                                         ),
                                       ),
-                                      if (routeInfo.isDualLoop && activeDir == 0) ...[
+                                      if (routeInfo.isDualLoop &&
+                                          activeDir == 0) ...[
                                         if (entry.key == 0) ...[
                                           const SizedBox(width: 6),
                                           _buildStopBadge('1st Visit', isDark),
-                                        ] else if (entry.key == (routeInfo.direction1Stops.length - 1)) ...[
+                                        ] else if (entry.key ==
+                                            (routeInfo.direction1Stops.length -
+                                                1)) ...[
                                           const SizedBox(width: 6),
-                                          _buildStopBadge('2nd Visit', isDark, isRose: true),
-                                        ] else if (entry.key == activeStops.length - 1) ...[
+                                          _buildStopBadge('2nd Visit', isDark,
+                                              isRose: true),
+                                        ] else if (entry.key ==
+                                            activeStops.length - 1) ...[
                                           const SizedBox(width: 6),
                                           _buildStopBadge('Terminus', isDark),
                                         ],
@@ -472,8 +480,8 @@ class _BusRouteSheetState extends State<BusRouteSheet> {
                                           fontFamily: 'monospace',
                                           fontSize: 11,
                                           fontWeight: FontWeight.bold,
-                                          color:
-                                              theme.colorScheme.onSurfaceVariant,
+                                          color: theme
+                                              .colorScheme.onSurfaceVariant,
                                         ),
                                       ),
                                       Padding(

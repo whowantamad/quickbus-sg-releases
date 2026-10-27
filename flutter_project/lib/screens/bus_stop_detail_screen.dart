@@ -101,46 +101,10 @@ class _BusStopDetailScreenState extends State<BusStopDetailScreen> {
 
   void _showRefreshToast({String? error}) {
     if (!mounted) return;
-    final messenger = ScaffoldMessenger.of(context);
-    messenger.clearSnackBars();
-    final isError = error != null;
-    messenger.showSnackBar(
-      SnackBar(
-        behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.fromLTRB(24, 0, 24, 16),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        duration: const Duration(milliseconds: 2200),
-        backgroundColor: const Color(0xFF0F172A),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-        ),
-        content: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              isError
-                  ? Icons.error_outline_rounded
-                  : Icons.check_circle_rounded,
-              size: 16,
-              color:
-                  isError ? const Color(0xFFF43F5E) : const Color(0xFF10B981),
-            ),
-            const SizedBox(width: 8),
-            Flexible(
-              child: Text(
-                isError ? error : 'Arrival data updated',
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+    showAppToast(
+      context,
+      error ?? 'Arrival data updated',
+      isError: error != null,
     );
   }
 

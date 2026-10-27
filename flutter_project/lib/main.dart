@@ -68,18 +68,16 @@ class _QuickBusAppState extends State<QuickBusApp> {
             return TextStyle(
               fontSize: 10.5,
               fontWeight: FontWeight.w600,
-              color: selected
-                  ? const Color(0xFFE11D48)
-                  : const Color(0xFF94A3B8),
+              color:
+                  selected ? const Color(0xFFE11D48) : const Color(0xFF94A3B8),
             );
           }),
           iconTheme: WidgetStateProperty.resolveWith((states) {
             final selected = states.contains(WidgetState.selected);
             return IconThemeData(
               size: 20,
-              color: selected
-                  ? const Color(0xFFE11D48)
-                  : const Color(0xFF94A3B8),
+              color:
+                  selected ? const Color(0xFFE11D48) : const Color(0xFF94A3B8),
             );
           }),
         ),
@@ -109,18 +107,16 @@ class _QuickBusAppState extends State<QuickBusApp> {
             return TextStyle(
               fontSize: 10.5,
               fontWeight: FontWeight.w600,
-              color: selected
-                  ? const Color(0xFFFB7185)
-                  : const Color(0xFF64748B),
+              color:
+                  selected ? const Color(0xFFFB7185) : const Color(0xFF64748B),
             );
           }),
           iconTheme: WidgetStateProperty.resolveWith((states) {
             final selected = states.contains(WidgetState.selected);
             return IconThemeData(
               size: 20,
-              color: selected
-                  ? const Color(0xFFFB7185)
-                  : const Color(0xFF64748B),
+              color:
+                  selected ? const Color(0xFFFB7185) : const Color(0xFF64748B),
             );
           }),
         ),

@@ -10,7 +10,8 @@ import 'package:quickbus_sg/services/transit_db_service.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('NextBusInfo.minutesToArrival computes remaining minutes accurately', () {
+  test('NextBusInfo.minutesToArrival computes remaining minutes accurately',
+      () {
     final futureIso = DateTime.now()
         .toUtc()
         .add(const Duration(minutes: 5, seconds: 30))
@@ -31,7 +32,8 @@ void main() {
     expect(const NextBusInfo().minutesToArrival, isNull);
   });
 
-  test('Dual-loop expansion preserves real arrival timestamps on both wings', () async {
+  test('Dual-loop expansion preserves real arrival timestamps on both wings',
+      () async {
     await TransitDbService.init();
 
     expect(TransitDbService.isDualLoopAtStop('358', '77009'), isTrue);
@@ -53,7 +55,8 @@ void main() {
     expect(expanded[0].nextBus?.estimatedArrival, equals(sampleEta));
     expect(expanded[1].nextBus?.estimatedArrival, equals(sampleEta));
 
-    final nearest = TransitDbService.getNearestStops(1.2929, 103.8529, limit: 5);
+    final nearest =
+        TransitDbService.getNearestStops(1.2929, 103.8529, limit: 5);
     expect(nearest.length, equals(5));
     expect(
       nearest.first.distanceMeters! <= nearest.last.distanceMeters!,
@@ -61,7 +64,9 @@ void main() {
     );
   });
 
-  test('Dual-loop service separates 1st and 2nd visit arrivals and exposes all routes', () async {
+  test(
+      'Dual-loop service separates 1st and 2nd visit arrivals and exposes all routes',
+      () async {
     await TransitDbService.init();
 
     const etaVisit1 = '2026-10-26T17:40:00+08:00';
@@ -102,7 +107,9 @@ void main() {
     expect(routeInfo.direction2Stops?.length, equals(12));
   });
 
-  test('FavoritesService caches starred stops and caps recent stop history at 30', () async {
+  test(
+      'FavoritesService caches starred stops and caps recent stop history at 30',
+      () async {
     SharedPreferences.setMockInitialValues({});
     await FavoritesService.getFavorites();
 
@@ -117,7 +124,8 @@ void main() {
     expect(recents.length, equals(30));
   });
 
-  test('UserSettings serialization preserves custom auto-refresh and theme', () async {
+  test('UserSettings serialization preserves custom auto-refresh and theme',
+      () async {
     SharedPreferences.setMockInitialValues({});
     const custom = UserSettings(
       datamallKey: 'test-key',
@@ -140,7 +148,8 @@ void main() {
     expect(api.lastErrorMessage, isNull);
   });
 
-  test('BusRouteInfo contains bidirectional stops and schedule windows', () async {
+  test('BusRouteInfo contains bidirectional stops and schedule windows',
+      () async {
     await TransitDbService.init();
     final route = TransitDbService.getBusRouteAndSchedule('147');
     expect(route.serviceNo, equals('147'));
@@ -149,6 +158,107 @@ void main() {
     expect(route.direction2Stops!.isNotEmpty, isTrue);
     expect(route.schedule.weekday.first, isNotEmpty);
     expect(route.schedule.weekday.last, isNotEmpty);
+  });
+
+  test(
+      'Location history predicts coordinates by weekday/weekend and time of day',
+      () async {
+    SharedPreferences.setMockInitialValues({});
+    await TransitDbService.init();
+
+    // Home (Tampines): Weekday 8:00 AM
+    await FavoritesService.recordLocation(
+      1.35408,
+      103.94339,
+      timestamp: DateTime(2026, 10, 19, 8, 0), // Monday
+    );
+    await FavoritesService.recordLocation(
+      1.35412,
+      103.94342,
+      timestamp: DateTime(2026, 10, 20, 8, 15), // Tuesday
+    );
+
+    // Work (Raffles Place): Weekday 6:00 PM
+    await FavoritesService.recordLocation(
+      1.28520,
+      103.85256,
+      timestamp: DateTime(2026, 10, 19, 18, 0), // Monday
+    );
+    await FavoritesService.recordLocation(
+      1.28525,
+      103.85260,
+      timestamp: DateTime(2026, 10, 20, 18, 10), // Tuesday
+    );
+
+    // Weekend spot (Orchard): Saturday 2:00 PM
+    await FavoritesService.recordLocation(
+      1.30417,
+      103.83383,
+      timestamp: DateTime(2026, 10, 24, 14, 0), // Saturday
+    );
+
+    // Query on Wednesday 8:10 AM -> should predict Tampines (Home)
+    final wedMorning = await FavoritesService.getPredictedOrLastLocation(
+      now: DateTime(2026, 10, 21, 8, 10),
+    );
+    expect(wedMorning, isNotNull);
+    expect(wedMorning!.isPredicted, isTrue);
+    expect(wedMorning.label, contains('Weekday Morning'));
+    expect(
+      TransitDbService.distanceMeters(
+          wedMorning.lat, wedMorning.lng, 1.3541, 103.9434),
+      lessThan(50),
+    );
+
+    // Query on Wednesday 6:05 PM -> should predict Raffles Place (Work)
+    final wedEvening = await FavoritesService.getPredictedOrLastLocation(
+      now: DateTime(2026, 10, 21, 18, 5),
+    );
+    expect(wedEvening, isNotNull);
+    expect(wedEvening!.label, contains('Weekday Evening'));
+    expect(
+      TransitDbService.distanceMeters(
+          wedEvening.lat, wedEvening.lng, 1.2852, 103.8526),
+      lessThan(50),
+    );
+
+    // Query on Sunday 2:15 PM -> should predict Orchard (Weekend)
+    final sunAfternoon = await FavoritesService.getPredictedOrLastLocation(
+      now: DateTime(2026, 10, 25, 14, 15),
+    );
+    expect(sunAfternoon, isNotNull);
+    expect(sunAfternoon!.label, contains('Weekend Afternoon'));
+    expect(
+      TransitDbService.distanceMeters(
+          sunAfternoon.lat, sunAfternoon.lng, 1.30417, 103.83383),
+      lessThan(50),
+    );
+
+    // Query at 3:00 AM (outside ±3h window) -> falls back to Last Location
+    final lateNight = await FavoritesService.getPredictedOrLastLocation(
+      now: DateTime(2026, 10, 26, 3, 0),
+    );
+    expect(lateNight, isNotNull);
+    expect(lateNight!.label, equals('Last Location'));
+
+    // If a new GPS fix was recorded 10 minutes ago (e.g. Jurong East at 8:00 AM),
+    // querying at 8:10 AM prefers that recent fix over the Tampines routine
+    await FavoritesService.recordLocation(
+      1.33235,
+      103.74066,
+      timestamp: DateTime(2026, 10, 27, 8, 0),
+    );
+    final recentOverride = await FavoritesService.getPredictedOrLastLocation(
+      now: DateTime(2026, 10, 27, 8, 10),
+    );
+    expect(recentOverride, isNotNull);
+    expect(recentOverride!.isPredicted, isFalse);
+    expect(recentOverride.label, equals('Last Location'));
+    expect(
+      TransitDbService.distanceMeters(
+          recentOverride.lat, recentOverride.lng, 1.33235, 103.74066),
+      lessThan(20),
+    );
   });
 
   testWidgets('QuickBus SG app smoke test', (WidgetTester tester) async {

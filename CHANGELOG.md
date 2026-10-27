@@ -2,6 +2,19 @@
 
 All notable changes to **QuickBus SG** are documented in this file.
 
+## [1.0.9+10] - 2026-10-27
+
+### Added & Improved
+- **Predictive Location Engine & Location History (`favorites_service.dart`, `bus_stop.dart`, `nearby_screen.dart`)**:
+  - Removed hardcoded transit hubs and added a 100-entry rolling GPS history with spatial clustering (`300m`) that predicts starting coordinates by **weekday vs. weekend** and **time of day** ($\pm 3\text{h}$ window), prioritizing fixes recorded within the last 30 minutes and falling back to last known location or recent/starred stops.
+- **Nearby Pull-to-Refresh & On-Demand GPS Activation (`nearby_screen.dart`, `home_screen.dart`)**:
+  - Added pull-to-refresh on the Nearby stops list with a shared centered floating toast (`showAppToast`).
+  - Deferred hardware GPS activation until the `Nearby` tab is active, and prevented timed-out cached fallbacks from polluting prediction history.
+- **Prebuilt Android Release APK (`releases/`)**:
+  - Built `v1.0.9+10` universal ARM release APK.
+
+---
+
 ## [1.0.8+9] - 2026-10-27
 
 ### Added & Improved

@@ -116,3 +116,43 @@ class RecentStopRecord {
         'lastOpenedAt': lastOpenedAt,
       };
 }
+
+class LocationRecord {
+  final double lat;
+  final double lng;
+  final int timestampMs;
+
+  const LocationRecord({
+    required this.lat,
+    required this.lng,
+    required this.timestampMs,
+  });
+
+  factory LocationRecord.fromJson(Map<String, dynamic> json) {
+    return LocationRecord(
+      lat: (json['lat'] as num?)?.toDouble() ?? 0.0,
+      lng: (json['lng'] as num?)?.toDouble() ?? 0.0,
+      timestampMs: (json['timestampMs'] as num?)?.toInt() ?? 0,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'lat': lat,
+        'lng': lng,
+        'timestampMs': timestampMs,
+      };
+}
+
+class PredictedLocation {
+  final double lat;
+  final double lng;
+  final String label;
+  final bool isPredicted;
+
+  const PredictedLocation({
+    required this.lat,
+    required this.lng,
+    required this.label,
+    this.isPredicted = false,
+  });
+}

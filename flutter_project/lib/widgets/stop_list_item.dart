@@ -79,7 +79,8 @@ class _StopListItemState extends State<StopListItem> {
                   children: [
                     const Text(
                       'Remove Bus Stop?',
-                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                      style:
+                          TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                     ),
                     Text(
                       '${widget.stop.name} (${widget.stop.code})',
@@ -301,14 +302,16 @@ class _StopListItemState extends State<StopListItem> {
                     size: 18,
                     color: _starred
                         ? const Color(0xFFF59E0B)
-                        : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+                        : theme.colorScheme.onSurfaceVariant
+                            .withValues(alpha: 0.4),
                   ),
                 ),
               ),
               Icon(
                 Icons.chevron_right_rounded,
                 size: 18,
-                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                color:
+                    theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
               ),
             ],
           ),
@@ -341,7 +344,8 @@ class _StopListItemState extends State<StopListItem> {
             alignment: Alignment.centerLeft,
             child: const Row(
               children: [
-                Icon(Icons.delete_outline_rounded, color: Colors.white, size: 18),
+                Icon(Icons.delete_outline_rounded,
+                    color: Colors.white, size: 18),
                 SizedBox(width: 6),
                 Text(
                   'Delete',
@@ -373,7 +377,8 @@ class _StopListItemState extends State<StopListItem> {
                   ),
                 ),
                 SizedBox(width: 6),
-                Icon(Icons.delete_outline_rounded, color: Colors.white, size: 18),
+                Icon(Icons.delete_outline_rounded,
+                    color: Colors.white, size: 18),
               ],
             ),
           ),

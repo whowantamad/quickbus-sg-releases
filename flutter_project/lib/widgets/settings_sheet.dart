@@ -3,7 +3,7 @@ import '../services/favorites_service.dart';
 import '../services/transit_db_service.dart';
 
 class SettingsSheet extends StatefulWidget {
-  static const String appVersion = '1.0.8+9';
+  static const String appVersion = '1.0.9+10';
 
   final UserSettings settings;
   final ValueChanged<UserSettings> onSettingsUpdated;
@@ -102,7 +102,8 @@ class _SettingsSheetState extends State<SettingsSheet> {
                           vertical: 2,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFE11D48).withValues(alpha: 0.12),
+                          color:
+                              const Color(0xFFE11D48).withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Text(

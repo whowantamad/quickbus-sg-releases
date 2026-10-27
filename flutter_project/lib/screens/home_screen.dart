@@ -30,14 +30,14 @@ class _HomeScreenState extends State<HomeScreen> {
   void _openStop(BusStop stop) {
     Navigator.of(context)
         .push(
-          MaterialPageRoute(
-            builder: (_) => BusStopDetailScreen(busStop: stop),
-          ),
-        )
+      MaterialPageRoute(
+        builder: (_) => BusStopDetailScreen(busStop: stop),
+      ),
+    )
         .then((_) {
-          _favoritesKey.currentState?.reload();
-          _searchKey.currentState?.reloadRecentOrDefault();
-        });
+      _favoritesKey.currentState?.reload();
+      _searchKey.currentState?.reloadRecentOrDefault();
+    });
   }
 
   void _openSettings() {
@@ -112,6 +112,7 @@ class _HomeScreenState extends State<HomeScreen> {
             onNavigateToNearby: () => setState(() => _currentIndex = 1),
           ),
           NearbyScreen(
+            isActive: _currentIndex == 1,
             onSelectStop: _openStop,
             onFavoritesChanged: () => _favoritesKey.currentState?.reload(),
           ),

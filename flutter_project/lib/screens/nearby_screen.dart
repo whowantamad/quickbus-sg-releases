@@ -3,23 +3,18 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import '../models/bus_stop.dart';
+import '../services/favorites_service.dart';
 import '../services/transit_db_service.dart';
 import '../widgets/stop_list_item.dart';
 
-class _SgHub {
-  final String name;
-  final double lat;
-  final double lng;
-
-  const _SgHub({required this.name, required this.lat, required this.lng});
-}
-
 class NearbyScreen extends StatefulWidget {
+  final bool isActive;
   final ValueChanged<BusStop> onSelectStop;
   final VoidCallback? onFavoritesChanged;
 
   const NearbyScreen({
     super.key,
+    this.isActive = true,
     required this.onSelectStop,
     this.onFavoritesChanged,
   });
@@ -30,37 +25,47 @@ class NearbyScreen extends StatefulWidget {
 
 class _NearbyScreenState extends State<NearbyScreen>
     with WidgetsBindingObserver {
-  static const List<_SgHub> _hubs = [
-    _SgHub(name: 'City Hall', lat: 1.29250, lng: 103.85145),
-    _SgHub(name: 'Orchard', lat: 1.30417, lng: 103.83383),
-    _SgHub(name: 'Raffles Place', lat: 1.28520, lng: 103.85256),
-    _SgHub(name: 'Bugis', lat: 1.30076, lng: 103.85611),
-    _SgHub(name: 'Tampines', lat: 1.35408, lng: 103.94339),
-    _SgHub(name: 'Jurong East', lat: 1.33235, lng: 103.74066),
-    _SgHub(name: 'Woodlands', lat: 1.43695, lng: 103.78594),
-    _SgHub(name: 'Bedok', lat: 1.32454, lng: 103.92904),
-  ];
-
-  String _selectedHub = 'City Hall';
+  String _statusLabel = 'Locating...';
   bool _isLocating = false;
   bool _usingGps = false;
   bool _waitingForSettingsReturn = false;
   String? _geoError;
   List<BusStop> _stops = [];
   StreamSubscription<Position>? _refineSub;
+  Timer? _refineTimer;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _selectHub(_hubs.first);
+    _initStartupLocation();
+  }
+
+  @override
+  void didUpdateWidget(covariant NearbyScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isActive && !oldWidget.isActive) {
+      if (!_usingGps) {
+        _loadPredictedLocation();
+        if (!_isLocating) {
+          _tryAutoStartLiveGps();
+        }
+      }
+    }
   }
 
   @override
   void dispose() {
-    _refineSub?.cancel();
+    _cancelRefinement();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  void _cancelRefinement() {
+    _refineTimer?.cancel();
+    _refineTimer = null;
+    _refineSub?.cancel();
+    _refineSub = null;
   }
 
   @override
@@ -68,6 +73,53 @@ class _NearbyScreenState extends State<NearbyScreen>
     if (state == AppLifecycleState.resumed && _waitingForSettingsReturn) {
       _waitingForSettingsReturn = false;
       _checkAndResumeGps();
+    }
+  }
+
+  Future<PredictedLocation?> _loadPredictedLocation() async {
+    final predicted = await FavoritesService.getPredictedOrLastLocation();
+    if (predicted != null && mounted && !_usingGps) {
+      final nearest = TransitDbService.getNearestStops(
+        predicted.lat,
+        predicted.lng,
+        limit: 15,
+      );
+      setState(() {
+        _statusLabel = predicted.label;
+        _stops = nearest;
+      });
+    }
+    return predicted;
+  }
+
+  Future<void> _initStartupLocation() async {
+    final predicted = await _loadPredictedLocation();
+    if (widget.isActive) {
+      await _tryAutoStartLiveGps(hasFallback: predicted != null);
+    } else if (predicted == null && mounted) {
+      setState(() => _statusLabel = 'Tap GPS to locate');
+    }
+  }
+
+  Future<void> _tryAutoStartLiveGps({bool hasFallback = true}) async {
+    try {
+      final permission = await Geolocator.checkPermission();
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (permission != LocationPermission.denied &&
+          permission != LocationPermission.deniedForever &&
+          serviceEnabled) {
+        await _handleUseGps(silentPrompt: true);
+      } else if (!hasFallback && _stops.isEmpty && mounted) {
+        setState(() {
+          _statusLabel = 'Location Off';
+        });
+      }
+    } catch (_) {
+      if (!hasFallback && _stops.isEmpty && mounted) {
+        setState(() {
+          _statusLabel = 'Location Off';
+        });
+      }
     }
   }
 
@@ -89,16 +141,13 @@ class _NearbyScreenState extends State<NearbyScreen>
     }
   }
 
-  void _selectHub(_SgHub hub) {
-    _refineSub?.cancel();
-    final nearest =
-        TransitDbService.getNearestStops(hub.lat, hub.lng, limit: 15);
-    setState(() {
-      _selectedHub = hub.name;
-      _usingGps = false;
-      _geoError = null;
-      _stops = nearest;
-    });
+  void _showLocationToast({String? error}) {
+    if (!mounted) return;
+    showAppToast(
+      context,
+      error ?? 'GPS location updated',
+      isError: error != null,
+    );
   }
 
   LocationSettings _buildLocationSettings({
@@ -122,7 +171,9 @@ class _NearbyScreenState extends State<NearbyScreen>
 
   bool _isFreshAndAccurate(Position pos) {
     final age = DateTime.now().difference(pos.timestamp).abs();
-    return age <= const Duration(minutes: 3) && pos.accuracy <= 80;
+    return age <= const Duration(minutes: 3) &&
+        pos.accuracy > 0 &&
+        pos.accuracy <= 80;
   }
 
   Future<Position?> _tryGetLastKnownPosition({bool onlyFresh = false}) async {
@@ -261,16 +312,24 @@ class _NearbyScreenState extends State<NearbyScreen>
     );
   }
 
-  void _applyPosition(Position pos, {bool stopLocating = true}) {
+  void _applyPosition(
+    Position pos, {
+    bool stopLocating = true,
+    bool recordHistory = true,
+    bool isLiveFix = true,
+  }) {
     if (!mounted) return;
+    if (recordHistory && isLiveFix) {
+      FavoritesService.recordLocation(pos.latitude, pos.longitude);
+    }
     final nearest = TransitDbService.getNearestStops(
       pos.latitude,
       pos.longitude,
       limit: 15,
     );
     setState(() {
-      _selectedHub = 'GPS';
-      _usingGps = true;
+      _statusLabel = isLiveFix ? 'Live GPS' : 'Last Location';
+      _usingGps = isLiveFix;
       if (stopLocating) _isLocating = false;
       _geoError = null;
       _stops = nearest;
@@ -278,50 +337,50 @@ class _NearbyScreenState extends State<NearbyScreen>
   }
 
   /// Refines coarse initial fixes (e.g. cell/Wi-Fi > 25m accuracy returned on first callback)
-  /// for up to 5 seconds until a sharp GPS fix (<= 20m) arrives.
+  /// for up to 5 seconds until a sharp GPS fix (0 < accuracy <= 20m) arrives.
   void _startShortAccuracyRefinement(Position initialPos) {
-    _refineSub?.cancel();
-    if (kIsWeb || initialPos.accuracy <= 20.0) return;
+    _cancelRefinement();
+    if (kIsWeb || (initialPos.accuracy > 0 && initialPos.accuracy <= 20.0)) {
+      return;
+    }
 
-    var bestAccuracy = initialPos.accuracy;
+    var bestAccuracy =
+        initialPos.accuracy > 0 ? initialPos.accuracy : double.infinity;
     final stream = Geolocator.getPositionStream(
       locationSettings: _buildLocationSettings(accuracy: LocationAccuracy.best),
     );
 
-    Timer? stopTimer;
-    stopTimer = Timer(const Duration(seconds: 5), () {
-      _refineSub?.cancel();
-      _refineSub = null;
-    });
+    _refineTimer = Timer(const Duration(seconds: 5), _cancelRefinement);
 
     _refineSub = stream.listen(
       (pos) {
         if (!mounted || !_usingGps) {
-          stopTimer?.cancel();
-          _refineSub?.cancel();
+          _cancelRefinement();
           return;
         }
-        if (pos.accuracy < bestAccuracy) {
+        if (pos.accuracy > 0 && pos.accuracy < bestAccuracy) {
           bestAccuracy = pos.accuracy;
-          _applyPosition(pos, stopLocating: true);
+          _applyPosition(
+            pos,
+            stopLocating: true,
+            recordHistory: true,
+            isLiveFix: true,
+          );
         }
-        if (pos.accuracy <= 20.0) {
-          stopTimer?.cancel();
-          _refineSub?.cancel();
-          _refineSub = null;
+        if (pos.accuracy > 0 && pos.accuracy <= 20.0) {
+          _cancelRefinement();
         }
       },
-      onError: (_) {
-        stopTimer?.cancel();
-        _refineSub?.cancel();
-        _refineSub = null;
-      },
+      onError: (_) => _cancelRefinement(),
     );
   }
 
-  Future<void> _handleUseGps() async {
+  Future<void> _handleUseGps({
+    bool silentPrompt = false,
+    bool showToast = false,
+  }) async {
     if (_isLocating) return;
-    _refineSub?.cancel();
+    _cancelRefinement();
     setState(() {
       _isLocating = true;
       _geoError = null;
@@ -330,7 +389,7 @@ class _NearbyScreenState extends State<NearbyScreen>
     try {
       // 1. Check / request app location permission first
       var permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
+      if (permission == LocationPermission.denied && !silentPrompt) {
         permission = await Geolocator.requestPermission();
       }
 
@@ -340,7 +399,12 @@ class _NearbyScreenState extends State<NearbyScreen>
             _isLocating = false;
             _geoError = 'Location permission denied — tap to grant access';
           });
-          await _showLocationPromptModal(isGpsOff: false);
+          if (showToast) {
+            _showLocationToast(error: 'Location permission denied');
+          }
+          if (!silentPrompt) {
+            await _showLocationPromptModal(isGpsOff: false);
+          }
         }
         return;
       }
@@ -351,10 +415,15 @@ class _NearbyScreenState extends State<NearbyScreen>
             _isLocating = false;
             _geoError = 'Permission disabled — tap to open App Settings';
           });
-          await _showLocationPromptModal(
-            isGpsOff: false,
-            isPermanentlyDenied: true,
-          );
+          if (showToast) {
+            _showLocationToast(error: 'Location permission disabled');
+          }
+          if (!silentPrompt) {
+            await _showLocationPromptModal(
+              isGpsOff: false,
+              isPermanentlyDenied: true,
+            );
+          }
         }
         return;
       }
@@ -367,16 +436,22 @@ class _NearbyScreenState extends State<NearbyScreen>
         serviceInitiallyEnabled = false;
       }
 
-      // Only preview cached position if it is fresh (<= 3 min) and accurate (<= 80m)
+      // Only preview cached position if it is fresh (<= 3 min) and accurate (0 < accuracy <= 80m)
       if (serviceInitiallyEnabled) {
         final quickLast = await _tryGetLastKnownPosition(onlyFresh: true);
         if (quickLast != null && mounted) {
-          _applyPosition(quickLast, stopLocating: false);
+          _applyPosition(
+            quickLast,
+            stopLocating: false,
+            recordHistory: false,
+            isLiveFix: true,
+          );
         }
       }
 
       // 3. Request best-accuracy position.
       Position? pos;
+      var isLiveFix = false;
 
       try {
         pos = await Geolocator.getCurrentPosition(
@@ -385,6 +460,7 @@ class _NearbyScreenState extends State<NearbyScreen>
             timeLimit: Duration(seconds: serviceInitiallyEnabled ? 20 : 40),
           ),
         );
+        isLiveFix = true;
       } on LocationServiceDisabledException {
         if (mounted) {
           setState(() {
@@ -392,7 +468,12 @@ class _NearbyScreenState extends State<NearbyScreen>
             _geoError =
                 'Device GPS is off — tap here to open Location Settings';
           });
-          await _showLocationPromptModal(isGpsOff: true);
+          if (showToast) {
+            _showLocationToast(error: 'Device GPS is off');
+          }
+          if (!silentPrompt) {
+            await _showLocationPromptModal(isGpsOff: true);
+          }
         }
         return;
       } on PermissionDeniedException {
@@ -401,7 +482,12 @@ class _NearbyScreenState extends State<NearbyScreen>
             _isLocating = false;
             _geoError = 'Location permission denied — tap to grant access';
           });
-          await _showLocationPromptModal(isGpsOff: false);
+          if (showToast) {
+            _showLocationToast(error: 'Location permission denied');
+          }
+          if (!silentPrompt) {
+            await _showLocationPromptModal(isGpsOff: false);
+          }
         }
         return;
       } on TimeoutException {
@@ -415,14 +501,16 @@ class _NearbyScreenState extends State<NearbyScreen>
               _geoError =
                   'Device GPS is off — tap here to open Location Settings';
             });
-            await _showLocationPromptModal(isGpsOff: true);
+            if (showToast) {
+              _showLocationToast(error: 'Device GPS is off');
+            }
+            if (!silentPrompt) {
+              await _showLocationPromptModal(isGpsOff: true);
+            }
           }
           return;
         }
-        pos = await _tryGetLastKnownPosition();
-        if (pos == null &&
-            !kIsWeb &&
-            defaultTargetPlatform == TargetPlatform.android) {
+        if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
           try {
             pos = await Geolocator.getCurrentPosition(
               locationSettings: _buildLocationSettings(
@@ -431,8 +519,10 @@ class _NearbyScreenState extends State<NearbyScreen>
                 timeLimit: const Duration(seconds: 20),
               ),
             );
+            isLiveFix = true;
           } catch (_) {}
         }
+        pos ??= await _tryGetLastKnownPosition();
       }
 
       if (pos == null) {
@@ -444,30 +534,54 @@ class _NearbyScreenState extends State<NearbyScreen>
             _geoError =
                 'Device GPS is off — tap here to open Location Settings';
           });
-          await _showLocationPromptModal(isGpsOff: true);
+          if (showToast) {
+            _showLocationToast(error: 'Device GPS is off');
+          }
+          if (!silentPrompt) {
+            await _showLocationPromptModal(isGpsOff: true);
+          }
           return;
         }
         if (mounted) {
           setState(() {
             _isLocating = false;
-            if (!_usingGps) {
+            if (!_usingGps && _stops.isEmpty) {
               _geoError = 'Could not acquire GPS signal — please try again';
             }
           });
+          if (showToast) {
+            _showLocationToast(error: 'Could not acquire GPS signal');
+          }
         }
         return;
       }
 
-      _applyPosition(pos, stopLocating: true);
-      _startShortAccuracyRefinement(pos);
+      _applyPosition(
+        pos,
+        stopLocating: true,
+        recordHistory: isLiveFix,
+        isLiveFix: isLiveFix,
+      );
+      if (showToast) {
+        _showLocationToast(
+          error:
+              isLiveFix ? null : 'Live GPS timed out · showing last location',
+        );
+      }
+      if (isLiveFix) {
+        _startShortAccuracyRefinement(pos);
+      }
     } catch (_) {
       if (mounted) {
         setState(() {
           _isLocating = false;
-          if (!_usingGps) {
+          if (!_usingGps && _stops.isEmpty) {
             _geoError = 'Could not acquire GPS location';
           }
         });
+        if (showToast) {
+          _showLocationToast(error: 'Could not acquire GPS location');
+        }
       }
     }
   }
@@ -482,31 +596,41 @@ class _NearbyScreenState extends State<NearbyScreen>
       children: [
         // Top Header with GPS Locate Button
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 6),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  const Icon(
-                    Icons.near_me_rounded,
-                    size: 18,
-                    color: Color(0xFFE11D48),
-                  ),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'Nearby',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    '· $_selectedHub',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: theme.colorScheme.onSurfaceVariant,
+              Expanded(
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.near_me_rounded,
+                      size: 18,
+                      color: Color(0xFFE11D48),
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Nearby',
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+                    ),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
+                        '· $_statusLabel',
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight:
+                              _usingGps ? FontWeight.w600 : FontWeight.w500,
+                          color: _usingGps
+                              ? const Color(0xFF10B981)
+                              : theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               Material(
                 color: _usingGps
@@ -515,7 +639,7 @@ class _NearbyScreenState extends State<NearbyScreen>
                 shape: const CircleBorder(),
                 elevation: 1,
                 child: InkWell(
-                  onTap: _handleUseGps,
+                  onTap: () => _handleUseGps(showToast: true),
                   customBorder: const CircleBorder(),
                   child: SizedBox(
                     width: 34,
@@ -543,52 +667,10 @@ class _NearbyScreenState extends State<NearbyScreen>
           ),
         ),
 
-        // Transit Hub Selector
-        SizedBox(
-          height: 38,
-          child: ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            scrollDirection: Axis.horizontal,
-            itemCount: _hubs.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 6),
-            itemBuilder: (context, idx) {
-              final hub = _hubs[idx];
-              final active = _selectedHub == hub.name && !_usingGps;
-              return InkWell(
-                onTap: () => _selectHub(hub),
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                    color: active
-                        ? (isDark ? Colors.white : const Color(0xFF0F172A))
-                        : (isDark ? const Color(0xFF131B2E) : Colors.white),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: isDark ? Colors.white10 : Colors.black12,
-                    ),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    hub.name,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: active
-                          ? (isDark ? const Color(0xFF0F172A) : Colors.white)
-                          : null,
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-
         // GPS Error Banner
         if (_geoError != null)
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
             child: InkWell(
               borderRadius: BorderRadius.circular(12),
               onTap: () async {
@@ -654,21 +736,59 @@ class _NearbyScreenState extends State<NearbyScreen>
             ),
           ),
 
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
 
-        // Bus Stop Cards List
+        // Bus Stop Cards List with Pull-to-Refresh
         Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.only(bottom: 24),
-            itemCount: _stops.length,
-            itemBuilder: (context, idx) {
-              final stop = _stops[idx];
-              return StopListItem(
-                stop: stop,
-                onSelect: () => widget.onSelectStop(stop),
-                onStarToggled: widget.onFavoritesChanged,
-              );
-            },
+          child: RefreshIndicator(
+            color: const Color(0xFFE11D48),
+            onRefresh: () => _handleUseGps(showToast: true),
+            child: _stops.isEmpty
+                ? ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    children: [
+                      SizedBox(
+                        height: 280,
+                        child: Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.my_location_rounded,
+                                size: 36,
+                                color: theme.colorScheme.onSurfaceVariant
+                                    .withValues(alpha: 0.5),
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                _isLocating
+                                    ? 'Acquiring GPS signal...'
+                                    : 'Pull down or tap GPS to find nearby stops',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                : ListView.builder(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.only(bottom: 24),
+                    itemCount: _stops.length,
+                    itemBuilder: (context, idx) {
+                      final stop = _stops[idx];
+                      return StopListItem(
+                        stop: stop,
+                        onSelect: () => widget.onSelectStop(stop),
+                        onStarToggled: widget.onFavoritesChanged,
+                      );
+                    },
+                  ),
           ),
         ),
       ],
