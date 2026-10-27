@@ -24,14 +24,14 @@ class NextBusInfo {
 
   factory NextBusInfo.fromJson(Map<String, dynamic> json) {
     return NextBusInfo(
-      estimatedArrival: json['EstimatedArrival']?.toString(),
-      load: json['Load']?.toString(),
-      feature: json['Feature']?.toString(),
-      type: json['Type']?.toString(),
-      originCode: json['OriginCode']?.toString(),
-      destinationCode: json['DestinationCode']?.toString(),
-      latitude: json['Latitude']?.toString(),
-      longitude: json['Longitude']?.toString(),
+      estimatedArrival: json['EstimatedArrival']?.toString().trim(),
+      load: json['Load']?.toString().trim().toUpperCase(),
+      feature: json['Feature']?.toString().trim().toUpperCase(),
+      type: json['Type']?.toString().trim().toUpperCase(),
+      originCode: json['OriginCode']?.toString().trim(),
+      destinationCode: json['DestinationCode']?.toString().trim(),
+      latitude: json['Latitude']?.toString().trim(),
+      longitude: json['Longitude']?.toString().trim(),
       visitNumber: int.tryParse(json['VisitNumber']?.toString() ?? ''),
     );
   }
@@ -49,8 +49,8 @@ class NextBusInfo {
     }
   }
 
-  bool get isDoubleDecker => type == 'DD';
-  bool get isWheelchairAccessible => feature == 'WAB';
+  bool get isDoubleDecker => type?.trim().toUpperCase() == 'DD';
+  bool get isWheelchairAccessible => feature?.trim().toUpperCase() == 'WAB';
 }
 
 class BusArrivalService {

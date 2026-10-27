@@ -243,6 +243,8 @@ class _BusStopDetailScreenState extends State<BusStopDetailScreen> {
         return 0;
       });
 
+    final oppositeStop = TransitDbService.findOppositeStop(_currentStop);
+
     return Scaffold(
       appBar: AppBar(
         titleSpacing: 0,
@@ -296,6 +298,18 @@ class _BusStopDetailScreenState extends State<BusStopDetailScreen> {
           ],
         ),
         actions: [
+          if (oppositeStop != null)
+            IconButton(
+              tooltip: 'Opposite: ${oppositeStop.name} (${oppositeStop.code})',
+              icon: const Icon(Icons.swap_horiz_rounded),
+              onPressed: () {
+                _initForStop(oppositeStop);
+                showAppToast(
+                  context,
+                  'Switched to ${oppositeStop.name} (${oppositeStop.code})',
+                );
+              },
+            ),
           IconButton(
             icon: Icon(
               _isStarred ? Icons.star_rounded : Icons.star_outline_rounded,

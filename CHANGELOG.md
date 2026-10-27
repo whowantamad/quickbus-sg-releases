@@ -2,6 +2,24 @@
 
 All notable changes to **QuickBus SG** are documented in this file.
 
+## [1.0.10+11] - 2026-10-27
+
+### Added & Improved
+- **Inline Starred Bus Timings & Stop Label/Tag Editor (`favorites_screen.dart`, `stop_list_item.dart`, `favorites_service.dart`)**:
+  - Added live arrival badges for starred services directly inside starred stop cards on the `Starred` tab with pull-to-refresh.
+  - Added a custom stop label and tag editor modal (`Commute`, `Home`, `Work`, `School`, or custom) via tap on the edit button or long-press.
+- **Opposite Stop Quick-Switch (`transit_db_service.dart`, `bus_stop_detail_screen.dart`)**:
+  - Added `TransitDbService.findOppositeStop` using Singapore LTA's 5-digit road-side parity convention (`1..4` $\leftrightarrow$ `6..9`) and road proximity, plus a quick-switch (`↔`) action in the stop detail `AppBar`.
+- **Route Sheet Auto-Scroll, `+N stops` Counter & Direction-Aware Schedule (`bus_route_sheet.dart`, `transit_db_service.dart`)**:
+  - Auto-scrolls to the current stop on open and direction change, badges the current stop (`Here`), and shows `+N stop(s)` on downstream stops.
+  - Selects the active direction's schedule entry (`loopWing == 2`) for bidirectional routes as well as dual-loop routes.
+- **WAB & Bus Attribute Normalization (`bus_arrival.dart`, `lta_api_service.dart`)**:
+  - Normalized `Feature`, `Load`, and `Type` fields in `NextBusInfo.fromJson` and varied `WAB`/`load`/`type` across all three simulated arrival slots.
+- **Prebuilt Android Release APK (`releases/`)**:
+  - Built `v1.0.10+11` universal ARM release APK.
+
+---
+
 ## [1.0.9+10] - 2026-10-27
 
 ### Added & Improved

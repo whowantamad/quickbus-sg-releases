@@ -261,6 +261,58 @@ void main() {
     );
   });
 
+  test('WAB normalization, opposite stop lookup, and favorite editing work',
+      () async {
+    SharedPreferences.setMockInitialValues({});
+    await TransitDbService.init();
+
+    // WAB normalization
+    final wabBus = NextBusInfo.fromJson({
+      'EstimatedArrival': '2026-10-27T08:00:00+08:00',
+      'Feature': ' wab ',
+      'Type': ' dd ',
+      'Load': ' sea ',
+    });
+    expect(wabBus.isWheelchairAccessible, isTrue);
+    expect(wabBus.isDoubleDecker, isTrue);
+    expect(wabBus.load, equals('SEA'));
+
+    final nonWabBus = NextBusInfo.fromJson({
+      'EstimatedArrival': '2026-10-27T08:00:00+08:00',
+      'Feature': '',
+      'Type': 'SD',
+    });
+    expect(nonWabBus.isWheelchairAccessible, isFalse);
+
+    // Opposite stop lookup: two-way road (01012 Hotel Grand Pacific <-> 01019 Bras Basah Complex)
+    // vs one-way road (09048 Lucky Plaza on Orchard Rd -> null)
+    final twoWayStop = TransitDbService.getStopByCode('01012');
+    expect(twoWayStop, isNotNull);
+    final opp = TransitDbService.findOppositeStop(twoWayStop!);
+    expect(opp, isNotNull);
+    expect(opp!.code, equals('01019'));
+
+    final oneWayStop = TransitDbService.getStopByCode('09048');
+    expect(oneWayStop, isNotNull);
+    expect(TransitDbService.findOppositeStop(oneWayStop!), isNull);
+
+    // Favorite update & starred services map
+    await FavoritesService.getFavorites();
+    await FavoritesService.updateFavorite(
+      '03223',
+      customName: 'Morning Office Stop',
+      tag: 'Home',
+    );
+    final updatedFavs = await FavoritesService.getFavorites();
+    final edited = updatedFavs.firstWhere((f) => f.code == '03223');
+    expect(edited.customName, equals('Morning Office Stop'));
+    expect(edited.tag, equals('Home'));
+
+    await FavoritesService.toggleStarredServiceForStop('03223', '147');
+    final allStarred = await FavoritesService.getAllStarredServices();
+    expect(allStarred['03223'], contains('147'));
+  });
+
   testWidgets('QuickBus SG app smoke test', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({});
     await FavoritesService.getFavorites();

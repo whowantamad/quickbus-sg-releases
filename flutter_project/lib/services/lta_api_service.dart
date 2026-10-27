@@ -134,14 +134,14 @@ class LtaApiService {
           estimatedArrival: now.add(Duration(minutes: min2)).toIso8601String(),
           load: loadTypes[(seed + 1) % 3],
           type: deckTypes[(seed + 1) % 2],
-          feature: 'WAB',
+          feature: ((seed + 2) % 4 != 0) ? 'WAB' : '',
           visitNumber: isDual ? 2 : null,
         ),
         nextBus3: NextBusInfo(
           estimatedArrival: now.add(Duration(minutes: min3)).toIso8601String(),
-          load: 'SEA',
-          type: 'SD',
-          feature: 'WAB',
+          load: loadTypes[(seed + 2) % 3],
+          type: deckTypes[(seed + 2) % 2],
+          feature: ((seed + 3) % 3 != 0) ? 'WAB' : '',
           visitNumber: isDual ? 1 : null,
         ),
       );

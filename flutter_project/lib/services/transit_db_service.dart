@@ -169,6 +169,57 @@ class TransitDbService {
     return _stopByCode[code.trim()];
   }
 
+  /// Finds the paired opposite-direction bus stop across the road, if one exists.
+  /// In Singapore's 5-digit LTA stop numbering, stops ending in 1..4 are on one side
+  /// of the road and stops ending in 6..9 are on the opposite side (with 1<->9, 2<->8,
+  /// 3<->7, 4<->6 as exact pairs).
+  static BusStop? findOppositeStop(BusStop stop) {
+    final code = stop.code.trim();
+    final lastDigit = code.length == 5 ? int.tryParse(code.substring(4)) : null;
+
+    if (lastDigit != null &&
+        lastDigit >= 1 &&
+        lastDigit <= 9 &&
+        lastDigit != 5) {
+      final pairedCode = '${code.substring(0, 4)}${10 - lastDigit}';
+      final paired = _stopByCode[pairedCode];
+      if (paired != null &&
+          distanceMeters(stop.lat, stop.lng, paired.lat, paired.lng) <= 300) {
+        return paired;
+      }
+    }
+
+    final road = stop.road.trim().toLowerCase();
+    if (road.isEmpty) return null;
+
+    final isSideA = lastDigit != null && lastDigit >= 1 && lastDigit <= 4;
+    final isSideB = lastDigit != null && lastDigit >= 6 && lastDigit <= 9;
+
+    BusStop? best;
+    double bestDist = 250.0;
+    for (final s in allStops) {
+      if (s.code == code || s.road.trim().toLowerCase() != road) continue;
+      final otherDigit =
+          s.code.length == 5 ? int.tryParse(s.code.substring(4)) : null;
+      if (isSideA &&
+          otherDigit != null &&
+          !(otherDigit >= 6 && otherDigit <= 9)) {
+        continue;
+      }
+      if (isSideB &&
+          otherDigit != null &&
+          !(otherDigit >= 1 && otherDigit <= 4)) {
+        continue;
+      }
+      final d = distanceMeters(stop.lat, stop.lng, s.lat, s.lng);
+      if (d <= bestDist) {
+        bestDist = d;
+        best = s;
+      }
+    }
+    return best;
+  }
+
   static List<BusStop> searchStops(String query, {int limit = 50}) {
     final q = query.trim().toLowerCase();
     if (q.isEmpty) return allStops.take(limit).toList();
@@ -341,8 +392,9 @@ class TransitDbService {
     if (bundled != null) {
       final routesList = bundled['routes'] as List<dynamic>?;
       if (routesList != null && routesList.isNotEmpty) {
-        final firstRoute = routesList[0] as List<dynamic>;
-        if (firstRoute.isNotEmpty) originCode = firstRoute[0].toString();
+        final routeIdx = (loopWing == 2 && routesList.length > 1) ? 1 : 0;
+        final dirRoute = routesList[routeIdx] as List<dynamic>;
+        if (dirRoute.isNotEmpty) originCode = dirRoute[0].toString();
       }
     }
 
@@ -363,13 +415,8 @@ class TransitDbService {
       }).toList();
 
       if (matches.isNotEmpty) {
-        String chosenLine = matches[0];
-        if (matches.length > 1 && loopWing != null) {
-          final config = _dualLoopConfig[svcNo];
-          if (config != null && config.interchangeCodes.contains(targetCode)) {
-            chosenLine = loopWing == 2 ? matches[1] : matches[0];
-          }
-        }
+        final String chosenLine =
+            (matches.length > 1 && loopWing == 2) ? matches[1] : matches[0];
 
         final parts = chosenLine.trim().split(RegExp(r'\s+'));
         if (parts.length >= 7) {

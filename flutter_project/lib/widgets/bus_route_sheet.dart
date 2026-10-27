@@ -22,6 +22,7 @@ class BusRouteSheet extends StatefulWidget {
 
 class _BusRouteSheetState extends State<BusRouteSheet> {
   int? _activeDirection;
+  final GlobalKey _currentStopKey = GlobalKey();
 
   @override
   void initState() {
@@ -32,6 +33,22 @@ class _BusRouteSheetState extends State<BusRouteSheet> {
       loopWing: widget.initialDirection,
     );
     _activeDirection = _resolveInitialDirection(routeInfo);
+    _scrollToCurrentStop();
+  }
+
+  void _scrollToCurrentStop() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final ctx = _currentStopKey.currentContext;
+      if (ctx != null) {
+        Scrollable.ensureVisible(
+          ctx,
+          duration: const Duration(milliseconds: 280),
+          curve: Curves.easeOutCubic,
+          alignment: 0.25,
+        );
+      }
+    });
   }
 
   int _resolveInitialDirection(BusRouteInfo routeInfo) {
@@ -101,14 +118,27 @@ class _BusRouteSheetState extends State<BusRouteSheet> {
             ? (routeInfo.direction2Name ?? routeInfo.origin)
             : routeInfo.direction1Name);
 
-    final scheduleStopCode = widget.currentStopCode ??
-        (activeStops.isNotEmpty ? activeStops.first.code : null);
+    final currentInActive = widget.currentStopCode != null &&
+        activeStops.any((s) => s.code == widget.currentStopCode);
+    final scheduleStopCode = currentInActive
+        ? widget.currentStopCode
+        : (activeStops.isNotEmpty
+            ? activeStops.first.code
+            : widget.currentStopCode);
     final scheduleStop = TransitDbService.getStopByCode(scheduleStopCode);
     final schedule = TransitDbService.getStopServiceSchedule(
       widget.serviceNo,
       stopCode: scheduleStopCode,
       loopWing: activeDir == 0 ? 1 : activeDir,
     );
+    final currentStopIndex = widget.currentStopCode == null
+        ? -1
+        : (routeInfo.isDualLoop &&
+                activeDir == 0 &&
+                widget.initialDirection == 2
+            ? activeStops
+                .lastIndexWhere((s) => s.code == widget.currentStopCode)
+            : activeStops.indexWhere((s) => s.code == widget.currentStopCode));
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.86,
@@ -384,8 +414,14 @@ class _BusRouteSheetState extends State<BusRouteSheet> {
                 ...activeStops.asMap().entries.map((entry) {
                   final stop = entry.value;
                   final isCurrent = stop.code == widget.currentStopCode;
+                  final isAnchorCurrent = entry.key == currentStopIndex;
+                  final stopsAway =
+                      (currentStopIndex != -1 && entry.key > currentStopIndex)
+                          ? (entry.key - currentStopIndex)
+                          : null;
 
                   return Container(
+                    key: isAnchorCurrent ? _currentStopKey : null,
                     margin: const EdgeInsets.only(bottom: 6),
                     decoration: BoxDecoration(
                       color: isCurrent
@@ -515,6 +551,17 @@ class _BusRouteSheetState extends State<BusRouteSheet> {
                                 ],
                               ),
                             ),
+                            if (isAnchorCurrent) ...[
+                              const SizedBox(width: 6),
+                              _buildStopBadge('Here', isDark, isRose: true),
+                            ] else if (stopsAway != null) ...[
+                              const SizedBox(width: 6),
+                              _buildStopBadge(
+                                '+$stopsAway ${stopsAway == 1 ? 'stop' : 'stops'}',
+                                isDark,
+                              ),
+                            ],
+                            const SizedBox(width: 4),
                             Icon(
                               Icons.chevron_right_rounded,
                               size: 16,
@@ -543,7 +590,10 @@ class _BusRouteSheetState extends State<BusRouteSheet> {
     bool expanded = true,
   }) {
     final chip = InkWell(
-      onTap: () => setState(() => _activeDirection = direction),
+      onTap: () {
+        setState(() => _activeDirection = direction);
+        _scrollToCurrentStop();
+      },
       borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),

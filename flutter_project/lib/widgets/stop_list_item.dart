@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../models/bus_arrival.dart';
 import '../models/bus_stop.dart';
 import '../services/favorites_service.dart';
 
@@ -7,6 +8,8 @@ class StopListItem extends StatefulWidget {
   final VoidCallback onSelect;
   final VoidCallback? onStarToggled;
   final VoidCallback? onDelete;
+  final VoidCallback? onEdit;
+  final List<BusArrivalService>? starredArrivals;
   final bool confirmBeforeUnstar;
 
   const StopListItem({
@@ -15,6 +18,8 @@ class StopListItem extends StatefulWidget {
     required this.onSelect,
     this.onStarToggled,
     this.onDelete,
+    this.onEdit,
+    this.starredArrivals,
     this.confirmBeforeUnstar = false,
   });
 
@@ -157,6 +162,7 @@ class _StopListItemState extends State<StopListItem> {
       margin: EdgeInsets.zero,
       child: InkWell(
         onTap: widget.onSelect,
+        onLongPress: widget.onEdit,
         borderRadius: BorderRadius.circular(16),
         child: Padding(
           padding: const EdgeInsets.all(14),
@@ -233,8 +239,79 @@ class _StopListItemState extends State<StopListItem> {
                       ],
                     ),
 
-                    // Line 3: Bus services preview pill row
-                    if (widget.stop.services.isNotEmpty) ...[
+                    // Line 3: Live starred bus arrivals (if any)
+                    if (widget.starredArrivals != null &&
+                        widget.starredArrivals!.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: widget.starredArrivals!.map((svc) {
+                            final m1 = svc.nextBus?.minutesToArrival;
+                            final m2 = svc.nextBus2?.minutesToArrival;
+                            final eta1 =
+                                m1 == null ? '—' : (m1 <= 0 ? 'Arr' : '${m1}m');
+                            final eta2 = m2 == null
+                                ? null
+                                : (m2 <= 0 ? 'Arr' : '${m2}m');
+                            final load = svc.nextBus?.load;
+                            final etaColor = m1 == null
+                                ? theme.colorScheme.onSurfaceVariant
+                                : load == 'LSD'
+                                    ? const Color(0xFFF43F5E)
+                                    : load == 'SDA'
+                                        ? const Color(0xFFF59E0B)
+                                        : const Color(0xFF10B981);
+
+                            return Container(
+                              margin: const EdgeInsets.only(right: 6),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 7,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isDark
+                                    ? const Color(0xFF0F172A)
+                                    : const Color(0xFFF8FAFC),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(
+                                  color: const Color(0xFFF59E0B)
+                                      .withValues(alpha: 0.45),
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.star_rounded,
+                                    size: 10,
+                                    color: Color(0xFFF59E0B),
+                                  ),
+                                  const SizedBox(width: 3),
+                                  Text(
+                                    svc.serviceNo,
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 5),
+                                  Text(
+                                    eta2 != null ? '$eta1 · $eta2' : eta1,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      color: etaColor,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ] else if (widget.stop.services.isNotEmpty) ...[
+                      // Line 3 fallback: Bus services preview pill row
                       const SizedBox(height: 8),
                       SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
@@ -284,6 +361,21 @@ class _StopListItemState extends State<StopListItem> {
                 ),
               ),
               const SizedBox(width: 8),
+
+              if (widget.onEdit != null)
+                InkWell(
+                  onTap: widget.onEdit,
+                  borderRadius: BorderRadius.circular(20),
+                  child: Padding(
+                    padding: const EdgeInsets.all(6),
+                    child: Icon(
+                      Icons.edit_outlined,
+                      size: 16,
+                      color: theme.colorScheme.onSurfaceVariant
+                          .withValues(alpha: 0.55),
+                    ),
+                  ),
+                ),
 
               // Star Button & Chevron
               InkWell(

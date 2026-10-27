@@ -203,6 +203,24 @@ class FavoritesService {
     await saveFavorites(updated);
   }
 
+  static Future<void> updateFavorite(
+    String code, {
+    required String customName,
+    required String tag,
+  }) async {
+    final current = await getFavorites();
+    final updated = current.map((f) {
+      if (f.code != code) return f;
+      return FavoriteStop(
+        code: f.code,
+        customName: customName.trim(),
+        pinnedAt: f.pinnedAt,
+        tag: tag.trim(),
+      );
+    }).toList();
+    await saveFavorites(updated);
+  }
+
   // Recent stop records (sorted by open count descending, then recency)
   static Future<List<RecentStopRecord>> getRecentStopRecords() async {
     final prefs = await SharedPreferences.getInstance();
@@ -270,6 +288,24 @@ class FavoritesService {
   }
 
   // Per-stop starred bus services
+  static Future<Map<String, List<String>>> getAllStarredServices() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_starredServicesKey);
+    if (raw == null || raw.isEmpty) return {};
+    try {
+      final map = jsonDecode(raw) as Map<String, dynamic>;
+      return {
+        for (final entry in map.entries)
+          if (entry.value is List)
+            entry.key: (entry.value as List<dynamic>)
+                .map((e) => e.toString())
+                .toList(),
+      };
+    } catch (_) {
+      return {};
+    }
+  }
+
   static Future<List<String>> getStarredServicesForStop(String stopCode) async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_starredServicesKey);
