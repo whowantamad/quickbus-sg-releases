@@ -115,6 +115,7 @@ class _BusStopDetailScreenState extends State<BusStopDetailScreen> {
           borderRadius: BorderRadius.circular(14),
         ),
         content: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
@@ -122,12 +123,14 @@ class _BusStopDetailScreenState extends State<BusStopDetailScreen> {
                   ? Icons.error_outline_rounded
                   : Icons.check_circle_rounded,
               size: 16,
-              color: isError ? const Color(0xFFF43F5E) : const Color(0xFF10B981),
+              color:
+                  isError ? const Color(0xFFF43F5E) : const Color(0xFF10B981),
             ),
             const SizedBox(width: 8),
-            Expanded(
+            Flexible(
               child: Text(
                 isError ? error : 'Arrival data updated',
+                textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
@@ -373,19 +376,26 @@ class _BusStopDetailScreenState extends State<BusStopDetailScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 2, 16, 4),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
                   color: const Color(0xFFE11D48).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.info_outline_rounded, size: 13, color: Color(0xFFE11D48)),
+                    const Icon(Icons.info_outline_rounded,
+                        size: 13, color: Color(0xFFE11D48)),
                     const SizedBox(width: 6),
-                    Expanded(
+                    Flexible(
                       child: Text(
                         _errorMessage!,
-                        style: const TextStyle(fontSize: 11, color: Color(0xFFE11D48), fontWeight: FontWeight.w500),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                            fontSize: 11,
+                            color: Color(0xFFE11D48),
+                            fontWeight: FontWeight.w500),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),

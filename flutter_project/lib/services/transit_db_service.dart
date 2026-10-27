@@ -201,7 +201,7 @@ class TransitDbService {
       for (final stop in allStops)
         (
           stop: stop,
-          dist: _haversineMeters(lat, lng, stop.lat, stop.lng).round(),
+          dist: _distanceMeters(lat, lng, stop.lat, stop.lng).round(),
         ),
     ]..sort((a, b) => a.dist.compareTo(b.dist));
 
@@ -211,22 +211,16 @@ class TransitDbService {
         .toList();
   }
 
-  static double _haversineMeters(
+  /// Flat-earth Pythagorean distance calibrated for Singapore (~1.35°N on WGS-84).
+  static double _distanceMeters(
     double lat1,
     double lon1,
     double lat2,
     double lon2,
   ) {
-    const r = 6371000.0;
-    final dLat = (lat2 - lat1) * pi / 180.0;
-    final dLon = (lon2 - lon1) * pi / 180.0;
-    final a = sin(dLat / 2) * sin(dLat / 2) +
-        cos(lat1 * pi / 180.0) *
-            cos(lat2 * pi / 180.0) *
-            sin(dLon / 2) *
-            sin(dLon / 2);
-    final c = 2 * atan2(sqrt(a), sqrt(1 - a));
-    return r * c;
+    final dx = (lon2 - lon1) * 111288.0;
+    final dy = (lat2 - lat1) * 110575.0;
+    return sqrt(dx * dx + dy * dy);
   }
 
   static String _getMidpointRoadName(List<BusStop> stops) {
@@ -276,10 +270,10 @@ class TransitDbService {
           }
         }
         // Check if this service visits stopCode twice as a boarding stop
-        final boardingCodes = dir1Codes.length > 1 &&
-                dir1Codes.first == dir1Codes.last
-            ? dir1Codes.sublist(0, dir1Codes.length - 1)
-            : dir1Codes;
+        final boardingCodes =
+            dir1Codes.length > 1 && dir1Codes.first == dir1Codes.last
+                ? dir1Codes.sublist(0, dir1Codes.length - 1)
+                : dir1Codes;
         final visitCount =
             boardingCodes.where((code) => code == stopCode).length;
         if (visitCount >= 2) {
@@ -319,9 +313,9 @@ class TransitDbService {
     int? loopWing,
   }) {
     final svcNo = serviceNo.trim();
-    final isFeeder =
-        RegExp(r'^(2\d\d|3\d\d|80\d|81\d|90\d|91\d|92\d)$', caseSensitive: false)
-            .hasMatch(svcNo);
+    final isFeeder = RegExp(r'^(2\d\d|3\d\d|80\d|81\d|90\d|91\d|92\d)$',
+            caseSensitive: false)
+        .hasMatch(svcNo);
     final isPeakOrShortTrip =
         RegExp(r'^(65\d|66\d|67\d)$', caseSensitive: false).hasMatch(svcNo) ||
             RegExp(r'^\d+[ABCeTWXabcewx]$').hasMatch(svcNo);
@@ -363,7 +357,8 @@ class TransitDbService {
 
       final matches = entries.where((line) {
         final firstSpace = line.indexOf(' ');
-        final entrySvc = firstSpace != -1 ? line.substring(0, firstSpace) : line;
+        final entrySvc =
+            firstSpace != -1 ? line.substring(0, firstSpace) : line;
         return entrySvc == svcNo;
       }).toList();
 
@@ -460,10 +455,8 @@ class TransitDbService {
         if (dir2Codes == null || dir2Codes.isEmpty) {
           final splitIdx = _findDualLoopSplitIndex(dir1Codes, serviceNo);
           if (splitIdx != -1) {
-            final fullStops = dir1Codes
-                .map(getStopByCode)
-                .whereType<BusStop>()
-                .toList();
+            final fullStops =
+                dir1Codes.map(getStopByCode).whereType<BusStop>().toList();
             final rawWing1Stops = dir1Codes
                 .sublist(0, splitIdx + 1)
                 .map(getStopByCode)
@@ -506,10 +499,8 @@ class TransitDbService {
             ? dir2Codes.map(getStopByCode).whereType<BusStop>().toList()
             : null;
 
-        final origin =
-            dir1Stops.isNotEmpty ? dir1Stops.first.name : 'Terminal';
-        final rawDest =
-            dir1Stops.isNotEmpty ? dir1Stops.last.name : 'Terminal';
+        final origin = dir1Stops.isNotEmpty ? dir1Stops.first.name : 'Terminal';
+        final rawDest = dir1Stops.isNotEmpty ? dir1Stops.last.name : 'Terminal';
         final isSingleLoop = dir2Stops == null &&
             dir1Stops.length > 2 &&
             (dir1Stops.first.code == dir1Stops.last.code || origin == rawDest);
@@ -684,9 +675,7 @@ class TransitDbService {
         final v1Buses = allBuses
             .where((b) => b.visitNumber == null || b.visitNumber == 1)
             .toList();
-        final v2Buses = allBuses
-            .where((b) => b.visitNumber == 2)
-            .toList();
+        final v2Buses = allBuses.where((b) => b.visitNumber == 2).toList();
 
         final wing1Buses = hasExplicitVisits ? v1Buses : allBuses;
         final wing2Buses = hasExplicitVisits ? v2Buses : allBuses;

@@ -2,6 +2,21 @@
 
 All notable changes to **QuickBus SG** are documented in this file.
 
+## [1.0.8+9] - 2026-10-27
+
+### Added & Improved
+- **GPS & Location Permission Prompt Modals (`nearby_screen.dart`)**:
+  - Added dedicated action modals when device Location Services (GPS) are turned off or app location permissions are needed/disabled, with direct links to Android Location Settings and App Settings.
+- **Singapore-Calibrated Distance & GPS Refinement (`transit_db_service.dart`, `nearby_screen.dart`)**:
+  - Replaced spherical Haversine with a fast flat-earth Pythagorean distance calibrated for Singapore's WGS-84 latitude (`1.35°N`: `111,288 m/°` lon, `110,575 m/°` lat).
+  - Aligned transit hub coordinates with their exact interchange/station stops and added a 5-second stream refinement pass so coarse initial cell/Wi-Fi fixes refine to `< 20m` GPS accuracy.
+- **Centered Toast & Error Banner Text (`bus_stop_detail_screen.dart`, `nearby_screen.dart`)**:
+  - Centered the icon and text across the pull-to-refresh toast and error banners.
+- **Prebuilt Android Release APK (`releases/`)**:
+  - Built `v1.0.8+9` universal ARM release APK.
+
+---
+
 ## [1.0.7+8] - 2026-10-26
 
 ### Fixed
