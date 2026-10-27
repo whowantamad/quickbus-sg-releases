@@ -2,6 +2,17 @@
 
 All notable changes to **QuickBus SG** are documented in this file.
 
+## [1.0.7+8] - 2026-10-26
+
+### Fixed
+- **GPS "Could not acquire GPS signal" (`nearby_screen.dart`)**:
+  - Replaced chained 5–6s location attempts (each timeout cancelled the native request and restarted the GPS cold start) with a single 20s high-accuracy request (40s when GPS must first be enabled), falling back to last known position.
+  - On Fused provider errors, falls back to last known position then a 20s Android LocationManager fix.
+- **Prebuilt Android Release APK (`releases/`)**:
+  - Built `v1.0.7+8` universal ARM release APK.
+
+---
+
 ## [1.0.6+7] - 2026-10-26
 
 ### Fixed & Improved

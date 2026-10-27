@@ -88,7 +88,8 @@ class _NearbyScreenState extends State<NearbyScreen>
   }
 
   void _selectHub(_SgHub hub) {
-    final nearest = TransitDbService.getNearestStops(hub.lat, hub.lng, limit: 15);
+    final nearest =
+        TransitDbService.getNearestStops(hub.lat, hub.lng, limit: 15);
     setState(() {
       _selectedHub = hub.name;
       _usingGps = false;
@@ -128,36 +129,6 @@ class _NearbyScreenState extends State<NearbyScreen>
           forceAndroidLocationManager: true,
         );
         if (managerLast != null) return managerLast;
-      } catch (_) {}
-    }
-    return null;
-  }
-
-  Future<Position?> _acquireFallbackPosition() async {
-    // Stage 2: Fused balanced/medium accuracy (fast Wi-Fi + cell + GPS indoors)
-    try {
-      return await Geolocator.getCurrentPosition(
-        locationSettings: _buildLocationSettings(
-          accuracy: LocationAccuracy.medium,
-          timeLimit: const Duration(seconds: 5),
-        ),
-      );
-    } catch (_) {}
-
-    // Stage 3 & 4: Last known cached position (Fused, then LocationManager)
-    final lastKnown = await _tryGetLastKnownPosition();
-    if (lastKnown != null) return lastKnown;
-
-    // Stage 5: Direct Android LocationManager live fix
-    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
-      try {
-        return await Geolocator.getCurrentPosition(
-          locationSettings: _buildLocationSettings(
-            accuracy: LocationAccuracy.medium,
-            forceLocationManager: true,
-            timeLimit: const Duration(seconds: 6),
-          ),
-        );
       } catch (_) {}
     }
     return null;
@@ -230,17 +201,21 @@ class _NearbyScreenState extends State<NearbyScreen>
       Position? pos;
 
       try {
+        // One long request: each timeout cancels the native request and a retry
+        // restarts the GPS cold start, so short chained attempts never get a fix.
+        // Fused HIGH_ACCURACY also returns Wi-Fi/cell fixes, so no medium retry.
         pos = await Geolocator.getCurrentPosition(
           locationSettings: _buildLocationSettings(
             accuracy: LocationAccuracy.high,
-            timeLimit: Duration(seconds: serviceInitiallyEnabled ? 5 : 20),
+            timeLimit: Duration(seconds: serviceInitiallyEnabled ? 20 : 40),
           ),
         );
       } on LocationServiceDisabledException {
         if (mounted) {
           setState(() {
             _isLocating = false;
-            _geoError = 'Device GPS is off — tap here to open Location Settings';
+            _geoError =
+                'Device GPS is off — tap here to open Location Settings';
           });
         }
         return;
@@ -253,7 +228,7 @@ class _NearbyScreenState extends State<NearbyScreen>
         }
         return;
       } on TimeoutException {
-        pos = await _acquireFallbackPosition();
+        pos = await _tryGetLastKnownPosition();
       } catch (e) {
         final errStr = e.toString();
         if (errStr.contains('LOCATION_SERVICES_DISABLED')) {
@@ -266,7 +241,21 @@ class _NearbyScreenState extends State<NearbyScreen>
           }
           return;
         }
-        pos = await _acquireFallbackPosition();
+        // Fused failed (e.g. broken Play Services): retry via the platform LocationManager.
+        pos = await _tryGetLastKnownPosition();
+        if (pos == null &&
+            !kIsWeb &&
+            defaultTargetPlatform == TargetPlatform.android) {
+          try {
+            pos = await Geolocator.getCurrentPosition(
+              locationSettings: _buildLocationSettings(
+                accuracy: LocationAccuracy.high,
+                forceLocationManager: true,
+                timeLimit: const Duration(seconds: 20),
+              ),
+            );
+          } catch (_) {}
+        }
       }
 
       if (pos == null) {
