@@ -1,6 +1,6 @@
 # QuickBus SG 🇸🇬 🚌
 
-**Latest Version:** `v1.0.16+17` · [Full Changelog](./CHANGELOG.md)
+**Latest Version:** `v1.0.18+19` · [Full Changelog](./CHANGELOG.md) · [Releases README](./releases/README.md)
 
 A minimalist, high-speed Singapore Bus Arrival & Transit Flutter application (`flutter_project/`), powered by LTA DataMall v3 and a complete bundled offline Singapore transit database.
 
@@ -8,11 +8,11 @@ A minimalist, high-speed Singapore Bus Arrival & Transit Flutter application (`f
 
 ## 📱 Prebuilt Android APK (`releases/`)
 
-The pre-compiled universal ARM release APK is stored in the [`releases/`](./releases) directory:
+The pre-compiled universal ARM release APK is stored in the standalone [`releases/`](./releases) repository:
 
 | Architecture | File | Recommended For |
 | :--- | :--- | :--- |
-| **Combined ARM** (`arm64-v8a` + `armeabi-v7a`) | [`releases/quickbus-sg-v1.0.16+17-arm-universal.apk`](./releases/quickbus-sg-v1.0.16+17-arm-universal.apk) | All ARM Android devices (Android 8.0+) |
+| **Combined ARM** (`arm64-v8a` + `armeabi-v7a`) | [`releases/quickbus-sg-v1.0.18+19-arm-universal.apk`](./releases/quickbus-sg-v1.0.18+19-arm-universal.apk) | All ARM Android devices (Android 8.0+) |
 
 ---
 

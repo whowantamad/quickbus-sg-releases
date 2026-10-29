@@ -11,4 +11,6 @@ coverage/
 /sg_transit.db*
 /scripts/rebuild_snapshot
 /icon_mockups/
+/releases/
+
 
