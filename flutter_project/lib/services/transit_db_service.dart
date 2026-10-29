@@ -194,6 +194,7 @@ class TransitDbService {
 
     final isSideA = lastDigit != null && lastDigit >= 1 && lastDigit <= 4;
     final isSideB = lastDigit != null && lastDigit >= 6 && lastDigit <= 9;
+    if (!isSideA && !isSideB) return null;
 
     BusStop? best;
     double bestDist = 250.0;
@@ -201,14 +202,11 @@ class TransitDbService {
       if (s.code == code || s.road.trim().toLowerCase() != road) continue;
       final otherDigit =
           s.code.length == 5 ? int.tryParse(s.code.substring(4)) : null;
-      if (isSideA &&
-          otherDigit != null &&
-          !(otherDigit >= 6 && otherDigit <= 9)) {
+      if (otherDigit == null) continue;
+      if (isSideA && !(otherDigit >= 6 && otherDigit <= 9)) {
         continue;
       }
-      if (isSideB &&
-          otherDigit != null &&
-          !(otherDigit >= 1 && otherDigit <= 4)) {
+      if (isSideB && !(otherDigit >= 1 && otherDigit <= 4)) {
         continue;
       }
       final d = distanceMeters(stop.lat, stop.lng, s.lat, s.lng);

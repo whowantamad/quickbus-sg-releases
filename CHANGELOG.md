@@ -2,6 +2,20 @@
 
 All notable changes to **QuickBus SG** are documented in this file.
 
+## [1.0.12+13] - 2026-10-28
+
+### Fixed & Improved
+- **Cross-Tab Star Sync (`favorites_service.dart`, `stop_list_item.dart`)**:
+  - Added `FavoritesService.starredNotifier` so starring or unstarring a bus stop in `BusStopDetailScreen` immediately updates the star icon on `Search` and `Nearby` stop cards.
+- **Removed Fake Simulated Arrivals (`lta_api_service.dart`, `bus_stop_detail_screen.dart`, `favorites_screen.dart`)**:
+  - Removed `_generateSimulatedArrivals` and `_stableSeed` so missing API keys return `const []` with an explicit `'LTA DataMall API key not configured'` banner instead of fake timings.
+- **Extra Large (`1.35x`) Card Overflow & Opposite-Stop Guard (`bus_arrival_card.dart`, `transit_db_service.dart`, `favorites_screen.dart`)**:
+  - Made `BusArrivalCard` 4-character service badges and `1st/2nd Visit` labels overflow-safe at `1.35x` while preserving the original `56px` badge and `48×48px` slot layout, guarded `findOppositeStop` against non-sided stop codes (`0`/`5`), and disposed dialog `TextEditingController`s.
+- **Prebuilt Android Release APK (`releases/`)**:
+  - Built `v1.0.12+13` universal ARM release APK.
+
+---
+
 ## [1.0.11+12] - 2026-10-28
 
 ### Added & Improved

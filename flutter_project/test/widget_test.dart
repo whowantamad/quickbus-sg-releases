@@ -3,9 +3,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:quickbus_sg/main.dart';
 import 'package:quickbus_sg/models/bus_arrival.dart';
+import 'package:quickbus_sg/models/bus_stop.dart';
 import 'package:quickbus_sg/services/favorites_service.dart';
 import 'package:quickbus_sg/services/lta_api_service.dart';
 import 'package:quickbus_sg/services/transit_db_service.dart';
+import 'package:quickbus_sg/widgets/bus_arrival_card.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -141,13 +143,14 @@ void main() {
     expect(loaded.textScale, equals(1.35));
   });
 
-  test('LtaApiService tracks error messages and live status', () async {
+  test('LtaApiService returns empty list and error when API key is missing',
+      () async {
     final api = LtaApiService(accountKey: '');
-    final simulated = await api.getBusArrivals('03223', stopServices: ['147']);
-    expect(simulated.isNotEmpty, isTrue);
+    final result = await api.getBusArrivals('03223');
+    expect(result, isEmpty);
     expect(api.lastFetchIsLive, isFalse);
-    expect(api.lastFetchHadError, isFalse);
-    expect(api.lastErrorMessage, isNull);
+    expect(api.lastFetchHadError, isTrue);
+    expect(api.lastErrorMessage, equals('LTA DataMall API key not configured'));
   });
 
   test('BusRouteInfo contains bidirectional stops and schedule windows',
@@ -298,6 +301,17 @@ void main() {
     expect(oneWayStop, isNotNull);
     expect(TransitDbService.findOppositeStop(oneWayStop!), isNull);
 
+    // Non-sided stop code ending in 0 or 5 returns null
+    const terminalStop = BusStop(
+      code: '75005',
+      name: 'Tampines Temp Int',
+      road: 'Tampines Ave 4',
+      lat: 1.3541,
+      lng: 103.9434,
+      services: ['291'],
+    );
+    expect(TransitDbService.findOppositeStop(terminalStop), isNull);
+
     // Favorite update & starred services map
     await FavoritesService.getFavorites();
     await FavoritesService.updateFavorite(
@@ -313,6 +327,65 @@ void main() {
     await FavoritesService.toggleStarredServiceForStop('03223', '147');
     final allStarred = await FavoritesService.getAllStarredServices();
     expect(allStarred['03223'], contains('147'));
+  });
+
+  testWidgets('BusArrivalCard renders 4-char dual-loop at Extra Large 1.35x without overflow',
+      (WidgetTester tester) async {
+    await TransitDbService.init();
+    final futureIso = DateTime.now()
+        .toUtc()
+        .add(const Duration(minutes: 4))
+        .toIso8601String();
+    final svc = BusArrivalService(
+      serviceNo: '857A',
+      operator: 'SMRT',
+      loopWing: 2,
+      loopDirectionLabel: 'Yishun Int',
+      nextBus: NextBusInfo(
+        estimatedArrival: futureIso,
+        load: 'SEA',
+        type: 'DD',
+        feature: 'WAB',
+      ),
+      nextBus2: NextBusInfo(
+        estimatedArrival: futureIso,
+        load: 'SDA',
+        type: 'SD',
+        feature: 'WAB',
+      ),
+      nextBus3: NextBusInfo(
+        estimatedArrival: futureIso,
+        load: 'LSD',
+        type: 'SD',
+        feature: '',
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: MediaQuery(
+          data: const MediaQueryData(
+            size: Size(360, 800),
+            textScaler: TextScaler.linear(1.35),
+          ),
+          child: Scaffold(
+            body: SizedBox(
+              width: 360,
+              child: BusArrivalCard(
+                service: svc,
+                currentStopCode: '59009',
+                isStarred: true,
+                onToggleStar: () {},
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('857A'), findsOneWidget);
+    expect(find.text('2nd Visit'), findsOneWidget);
   });
 
   testWidgets('QuickBus SG app smoke test', (WidgetTester tester) async {

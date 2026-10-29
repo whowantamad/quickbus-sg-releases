@@ -72,10 +72,7 @@ class FavoritesScreenState extends State<FavoritesScreen> {
         final wantedKeys = starredMap[fav.code] ?? const [];
         if (stop == null || wantedKeys.isEmpty) return;
 
-        final liveList = await api.getBusArrivals(
-          fav.code,
-          stopServices: stop.services,
-        );
+        final liveList = await api.getBusArrivals(fav.code);
         final activeByNo = {for (final s in liveList) s.serviceNo: s};
         final raw = stop.services
             .map(
@@ -212,11 +209,16 @@ class FavoritesScreenState extends State<FavoritesScreen> {
       },
     );
 
+    final newName = nameCtrl.text;
+    final newTag = tagCtrl.text;
+    nameCtrl.dispose();
+    tagCtrl.dispose();
+
     if (saved == true) {
       await FavoritesService.updateFavorite(
         fav.code,
-        customName: nameCtrl.text,
-        tag: tagCtrl.text.trim().isEmpty ? 'Commute' : tagCtrl.text,
+        customName: newName,
+        tag: newTag.trim().isEmpty ? 'Commute' : newTag,
       );
       await reload();
       if (mounted) {

@@ -119,6 +119,7 @@ class FavoritesService {
   static const int _maxLocationHistory = 100;
 
   static Set<String>? _starredCodesCache;
+  static final ValueNotifier<int> starredNotifier = ValueNotifier<int>(0);
 
   static final List<FavoriteStop> _initialFavorites = [
     FavoriteStop(
@@ -163,6 +164,7 @@ class FavoritesService {
 
   static Future<void> saveFavorites(List<FavoriteStop> favorites) async {
     _starredCodesCache = {for (final f in favorites) f.code};
+    starredNotifier.value++;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(
       _favoritesKey,

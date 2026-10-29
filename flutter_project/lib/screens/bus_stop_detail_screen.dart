@@ -121,10 +121,7 @@ class _BusStopDetailScreenState extends State<BusStopDetailScreen> {
     });
 
     final api = LtaApiService(accountKey: _settings.datamallKey);
-    final liveList = await api.getBusArrivals(
-      requestedCode,
-      stopServices: requestedServices,
-    );
+    final liveList = await api.getBusArrivals(requestedCode);
 
     if (!mounted || _currentStop.code != requestedCode) return;
 

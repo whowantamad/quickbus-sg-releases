@@ -34,14 +34,29 @@ class _StopListItemState extends State<StopListItem> {
   void initState() {
     super.initState();
     _starred = FavoritesService.isStarredSync(widget.stop.code) ?? false;
+    FavoritesService.starredNotifier.addListener(_syncStarredFromCache);
     _loadStarred();
+  }
+
+  @override
+  void dispose() {
+    FavoritesService.starredNotifier.removeListener(_syncStarredFromCache);
+    super.dispose();
   }
 
   @override
   void didUpdateWidget(covariant StopListItem oldWidget) {
     super.didUpdateWidget(oldWidget);
+    _syncStarredFromCache();
     if (oldWidget.stop.code != widget.stop.code) {
       _loadStarred();
+    }
+  }
+
+  void _syncStarredFromCache() {
+    final cached = FavoritesService.isStarredSync(widget.stop.code);
+    if (cached != null && cached != _starred && mounted) {
+      setState(() => _starred = cached);
     }
   }
 

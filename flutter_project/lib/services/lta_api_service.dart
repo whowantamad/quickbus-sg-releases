@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/bus_arrival.dart';
-import 'transit_db_service.dart';
 
 class LtaApiService {
   static const String baseUrl =
@@ -35,124 +34,48 @@ class LtaApiService {
   LtaApiService({this.accountKey});
 
   /// Fetches real-time bus arrivals for a bus stop code.
-  /// When a valid AccountKey is configured, network/API errors return an empty list
-  /// so the UI displays honest "No Est. Available" status rather than fake simulated times.
-  /// Simulation is used only when no AccountKey is configured at all.
-  Future<List<BusArrivalService>> getBusArrivals(
-    String busStopCode, {
-    List<String>? stopServices,
-  }) async {
+  /// Returns an empty list on missing AccountKey or network/API errors so the UI
+  /// displays honest "No Est. Available" / "Not In Operation" status.
+  Future<List<BusArrivalService>> getBusArrivals(String busStopCode) async {
     final resolvedKey =
         (accountKey != null && _sanitizeKey(accountKey!).isNotEmpty)
             ? _sanitizeKey(accountKey!)
             : defaultAccountKey;
 
-    if (resolvedKey.isNotEmpty) {
-      try {
-        final url = Uri.parse('$baseUrl/BusArrival?BusStopCode=$busStopCode');
-        final response = await http.get(
-          url,
-          headers: {
-            'AccountKey': resolvedKey,
-            'accept': 'application/json',
-          },
-        ).timeout(const Duration(seconds: 8));
-
-        if (response.statusCode == 200) {
-          final data = jsonDecode(response.body) as Map<String, dynamic>;
-          final servicesList = data['Services'] as List<dynamic>? ?? [];
-          lastFetchIsLive = true;
-          lastErrorMessage = null;
-          return servicesList
-              .map((s) => BusArrivalService.fromJson(s as Map<String, dynamic>))
-              .toList();
-        } else {
-          lastErrorMessage = response.statusCode == 401 ||
-                  response.statusCode == 403
-              ? 'Invalid or expired LTA DataMall Key (${response.statusCode})'
-              : 'LTA DataMall API error (${response.statusCode})';
-        }
-      } catch (_) {
-        lastErrorMessage = 'Network error or request timeout';
-      }
+    if (resolvedKey.isEmpty) {
       lastFetchIsLive = false;
+      lastErrorMessage = 'LTA DataMall API key not configured';
       return const [];
     }
 
-    lastFetchIsLive = false;
-    lastErrorMessage = null;
-    return _generateSimulatedArrivals(busStopCode, stopServices: stopServices);
-  }
+    try {
+      final url = Uri.parse('$baseUrl/BusArrival?BusStopCode=$busStopCode');
+      final response = await http.get(
+        url,
+        headers: {
+          'AccountKey': resolvedKey,
+          'accept': 'application/json',
+        },
+      ).timeout(const Duration(seconds: 8));
 
-  List<BusArrivalService> _generateSimulatedArrivals(
-    String busStopCode, {
-    List<String>? stopServices,
-  }) {
-    final now = DateTime.now().toUtc();
-    final stop = TransitDbService.getStopByCode(busStopCode);
-    final servicesToSimulate = (stopServices != null && stopServices.isNotEmpty)
-        ? stopServices
-        : (stop != null && stop.services.isNotEmpty)
-            ? stop.services
-            : ['65', '147', '190', '857', '106'];
-
-    return servicesToSimulate.map((svc) {
-      final probeService = BusArrivalService(serviceNo: svc, operator: 'SBST');
-      final inOperation = TransitDbService.isServiceInOperation(
-        probeService,
-        stopCode: busStopCode,
-      );
-
-      if (!inOperation) {
-        return BusArrivalService(
-          serviceNo: svc,
-          operator: svc.length > 2 ? 'SMRT' : 'SBST',
-        );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final servicesList = data['Services'] as List<dynamic>? ?? [];
+        lastFetchIsLive = true;
+        lastErrorMessage = null;
+        return servicesList
+            .map((s) => BusArrivalService.fromJson(s as Map<String, dynamic>))
+            .toList();
+      } else {
+        lastErrorMessage = response.statusCode == 401 ||
+                response.statusCode == 403
+            ? 'Invalid or expired LTA DataMall Key (${response.statusCode})'
+            : 'LTA DataMall API error (${response.statusCode})';
       }
-
-      final seed = _stableSeed('$busStopCode:$svc');
-
-      final min1 = (seed % 6);
-      final min2 = min1 + (seed % 5) + 6;
-      final min3 = min2 + (seed % 6) + 8;
-
-      const loadTypes = ['SEA', 'SDA', 'LSD'];
-      const deckTypes = ['SD', 'DD'];
-      final isDual = TransitDbService.isDualLoopAtStop(svc, busStopCode);
-
-      return BusArrivalService(
-        serviceNo: svc,
-        operator: svc.length > 2 ? 'SMRT' : 'SBST',
-        nextBus: NextBusInfo(
-          estimatedArrival: now.add(Duration(minutes: min1)).toIso8601String(),
-          load: loadTypes[seed % 3],
-          type: deckTypes[seed % 2],
-          feature: (seed % 5 != 0) ? 'WAB' : '',
-          visitNumber: isDual ? 1 : null,
-        ),
-        nextBus2: NextBusInfo(
-          estimatedArrival: now.add(Duration(minutes: min2)).toIso8601String(),
-          load: loadTypes[(seed + 1) % 3],
-          type: deckTypes[(seed + 1) % 2],
-          feature: ((seed + 2) % 4 != 0) ? 'WAB' : '',
-          visitNumber: isDual ? 2 : null,
-        ),
-        nextBus3: NextBusInfo(
-          estimatedArrival: now.add(Duration(minutes: min3)).toIso8601String(),
-          load: loadTypes[(seed + 2) % 3],
-          type: deckTypes[(seed + 2) % 2],
-          feature: ((seed + 3) % 3 != 0) ? 'WAB' : '',
-          visitNumber: isDual ? 1 : null,
-        ),
-      );
-    }).toList();
-  }
-
-  static int _stableSeed(String input) {
-    var hash = 0;
-    for (final unit in input.codeUnits) {
-      hash = ((hash * 31) + unit) & 0x7fffffff;
+    } catch (_) {
+      lastErrorMessage = 'Network error or request timeout';
     }
-    return hash;
+    lastFetchIsLive = false;
+    return const [];
   }
 }
