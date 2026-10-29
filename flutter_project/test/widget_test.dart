@@ -9,6 +9,7 @@ import 'package:quickbus_sg/services/lta_api_service.dart';
 import 'package:quickbus_sg/services/transit_db_service.dart';
 import 'package:quickbus_sg/widgets/bus_arrival_card.dart';
 import 'package:quickbus_sg/widgets/bus_route_sheet.dart';
+import 'package:quickbus_sg/widgets/stop_list_item.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -535,6 +536,104 @@ void main() {
     expect(find.textContaining('All Routes'), findsOneWidget);
     expect(find.textContaining('1st Visit ·'), findsOneWidget);
     expect(find.textContaining('2nd Visit ·'), findsOneWidget);
+  });
+
+  testWidgets(
+      'BusArrivalCard modal displays "~" for estimated distance and stops away',
+      (WidgetTester tester) async {
+    await TransitDbService.init();
+
+    final route147 = TransitDbService.getBusRouteAndSchedule('147');
+    final stop3 = route147.direction1Stops[3];
+    final stop6 = route147.direction1Stops[6];
+
+    final svc = BusArrivalService(
+      serviceNo: '147',
+      operator: 'SBST',
+      nextBus: NextBusInfo(
+        estimatedArrival: DateTime.now()
+            .toUtc()
+            .add(const Duration(minutes: 5))
+            .toIso8601String(),
+        latitude: stop3.lat.toString(),
+        longitude: stop3.lng.toString(),
+        load: 'SEA',
+        type: 'DD',
+        feature: 'WAB',
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: BusArrivalCard(
+            service: svc,
+            currentStopCode: stop6.code,
+            onToggleStar: () {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Tap the 1st arrival slot to open modal (index 0 is the card, index 1 is 1st slot)
+    await tester.tap(find.byType(InkWell).at(1));
+    await tester.pumpAndSettle();
+
+    // Verify distance badge has '~' prefix (e.g. "~1.2 km away" or "~800m away")
+    expect(find.textContaining('~'), findsWidgets);
+    expect(find.textContaining('away'), findsWidgets);
+    expect(find.textContaining('~3 stops away'), findsOneWidget);
+  });
+
+  testWidgets(
+      'StopListItem displays "~" for estimated distance in meters and km',
+      (WidgetTester tester) async {
+    const stopMeters = BusStop(
+      code: '10009',
+      road: 'Bukit Merah Central',
+      name: 'Bt Merah Int',
+      lat: 1.282,
+      lng: 103.817,
+      distanceMeters: 450,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: StopListItem(
+            stop: stopMeters,
+            onSelect: () {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('~450m'), findsOneWidget);
+
+    const stopKm = BusStop(
+      code: '10018',
+      road: 'Alexandra Rd',
+      name: 'Opp Queensway Shop Ctr',
+      lat: 1.287,
+      lng: 103.803,
+      distanceMeters: 1420,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: StopListItem(
+            stop: stopKm,
+            onSelect: () {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('~1.4km'), findsOneWidget);
   });
 
   testWidgets('QuickBus SG app smoke test', (WidgetTester tester) async {

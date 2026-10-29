@@ -243,8 +243,8 @@ class _StopListItemState extends State<StopListItem> {
                           const SizedBox(width: 2),
                           Text(
                             widget.stop.distanceMeters! < 1000
-                                ? '${widget.stop.distanceMeters}m'
-                                : '${(widget.stop.distanceMeters! / 1000).toStringAsFixed(1)}km',
+                                ? '~${widget.stop.distanceMeters}m'
+                                : '~${(widget.stop.distanceMeters! / 1000).toStringAsFixed(1)}km',
                             style: TextStyle(
                               fontSize: 11,
                               color: theme.colorScheme.onSurfaceVariant,

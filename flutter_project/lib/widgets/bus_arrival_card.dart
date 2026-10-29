@@ -518,8 +518,8 @@ class BusArrivalCard extends StatelessWidget {
     final distLabel = distMeters == null
         ? null
         : distMeters < 1000
-            ? '${distMeters}m away'
-            : '${(distMeters / 1000).toStringAsFixed(1)} km away';
+            ? '~$distMeters' 'm away'
+            : '~${(distMeters / 1000).toStringAsFixed(1)} km away';
 
     showModalBottomSheet(
       context: context,
@@ -682,7 +682,7 @@ class BusArrivalCard extends StatelessWidget {
                                 const SizedBox(height: 2),
                                 Text(
                                   pos.nearestStop != null
-                                      ? '${pos.nearestStop!.code} · ${pos.nearestStop!.road}${pos.stopsAway != null ? (pos.stopsAway == 0 ? ' · At this stop' : ' · ${pos.stopsAway} ${pos.stopsAway == 1 ? 'stop' : 'stops'} away') : ''}'
+                                      ? '${pos.nearestStop!.code} · ${pos.nearestStop!.road}${pos.stopsAway != null ? (pos.stopsAway == 0 ? ' · At this stop' : ' · ~${pos.stopsAway} ${pos.stopsAway == 1 ? 'stop' : 'stops'} away') : ''}'
                                       : (distLabel ?? 'Live telemetry active'),
                                   style: TextStyle(
                                     fontSize: 11,

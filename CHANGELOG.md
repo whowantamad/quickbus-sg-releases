@@ -2,6 +2,19 @@
 
 All notable changes to **QuickBus SG** are documented in this file, separated into **What's New (App)** for users and **Developer Notes (Code)** for contributors.
 
+## [1.0.17+18] - 2026-10-29
+
+### What's New (App)
+- **Tilde `~` Prefix for Estimated Distances & Stops**: Distances and stop counts are now explicitly marked with `~` (e.g. `~350m away`, `~1.2 km away`, and `~3 stops away` in the arrival status modal, and `~450m` / `~1.4km` on Nearby bus stop cards) to clearly indicate estimates.
+
+### Developer Notes (Code)
+- `bus_arrival_card.dart`: Prefixed `distLabel` and `stopsAway` with `~`.
+- `stop_list_item.dart`: Prefixed stop distance in meters/km with `~`.
+- `widget_test.dart`: Added widget tests verifying `~` presence in arrival details modal and `StopListItem`.
+- `releases/`: Built `quickbus-sg-v1.0.17+18-arm-universal.apk`.
+
+---
+
 ## [1.0.16+17] - 2026-10-29
 
 ### What's New (App)
