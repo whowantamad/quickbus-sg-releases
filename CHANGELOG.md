@@ -2,6 +2,22 @@
 
 All notable changes to **QuickBus SG** are documented in this file, separated into **What's New (App)** for users and **Developer Notes (Code)** for contributors.
 
+## [1.0.14+15] - 2026-10-28
+
+### What's New (App)
+- **Tap Any Arrival Slot for Live Bus Position & Details**: Tap the `1st`, `2nd`, or `3rd` arrival slot on any bus card to open a live status modal showing how far away the bus is (`m` / `km`), which stop along the route it is currently near (`N stops away` or `At Interchange`), exact estimated arrival clock time, crowd level, bus type (`Single Deck` / `Double Decker` / `Bendy`), and wheelchair accessibility.
+- **`Next Bus` Marker on Route Timeline**: Opening the full route sheet now badges the stop where the next incoming bus is currently located.
+- **Last-Bus Warning Badge (`Last Bus HH:MM`)**: Displays an amber warning badge on bus cards when a service is within 30 minutes of its scheduled last bus at that stop (or within 45 minutes when only one bus remains).
+- **Neutral Pulsing `"Arr"` Text**: Kept `"Arr"` in high-contrast neutral text with a subtle fade pulse so only the bottom bar uses green/amber/red crowd colors.
+
+### Developer Notes (Code)
+- `bus_arrival.dart`: Added `latValue`, `lngValue`, `hasLiveCoordinates`, `loadLabel`, and `typeLabel` getters on `NextBusInfo`.
+- `transit_db_service.dart`: Added `locateBusOnRoute` (projects live bus GPS coordinates onto upstream route stops and computes distance + stop delta) and `getLastBusWarning` (checks SGT time against per-stop weekday/Saturday/Sunday last-bus windows including post-midnight wrap).
+- `bus_arrival_card.dart`, `bus_route_sheet.dart`, `bus_stop_detail_screen.dart`: Added `_showNextBusModal` on arrival slot tap, amber `lastBusWarning` pill, neutral `"Arr"` text color inside `_SubtlePulse`, and `Next Bus` stop badge in `BusRouteSheet`.
+- `releases/`: Built `quickbus-sg-v1.0.14+15-arm-universal.apk`.
+
+---
+
 ## [1.0.13+14] - 2026-10-28
 
 ### What's New (App)

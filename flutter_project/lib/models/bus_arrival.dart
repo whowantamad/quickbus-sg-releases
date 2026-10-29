@@ -51,6 +51,44 @@ class NextBusInfo {
 
   bool get isDoubleDecker => type?.trim().toUpperCase() == 'DD';
   bool get isWheelchairAccessible => feature?.trim().toUpperCase() == 'WAB';
+
+  double? get latValue {
+    final v = double.tryParse(latitude ?? '');
+    return (v != null && v.abs() > 0.01) ? v : null;
+  }
+
+  double? get lngValue {
+    final v = double.tryParse(longitude ?? '');
+    return (v != null && v.abs() > 0.01) ? v : null;
+  }
+
+  bool get hasLiveCoordinates => latValue != null && lngValue != null;
+
+  String get loadLabel {
+    switch (load) {
+      case 'SEA':
+        return 'Seats Available';
+      case 'SDA':
+        return 'Standing Available';
+      case 'LSD':
+        return 'Limited Standing';
+      default:
+        return 'Unknown Load';
+    }
+  }
+
+  String get typeLabel {
+    switch (type) {
+      case 'DD':
+        return 'Double Decker';
+      case 'BD':
+        return 'Bendy Bus';
+      case 'SD':
+        return 'Single Deck';
+      default:
+        return 'Standard Bus';
+    }
+  }
 }
 
 class BusArrivalService {

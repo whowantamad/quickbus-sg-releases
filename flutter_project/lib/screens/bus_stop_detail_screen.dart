@@ -197,6 +197,7 @@ class _BusStopDetailScreenState extends State<BusStopDetailScreen> {
         serviceNo: svc.serviceNo,
         currentStopCode: _currentStop.code,
         initialDirection: svc.loopWing,
+        liveService: svc,
         onSelectStop: (newStop) {
           _initForStop(newStop);
         },

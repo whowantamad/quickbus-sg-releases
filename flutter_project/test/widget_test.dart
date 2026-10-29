@@ -388,6 +388,68 @@ void main() {
     expect(find.text('2nd Visit'), findsOneWidget);
   });
 
+  test('locateBusOnRoute and getLastBusWarning handle live coords and closing window',
+      () async {
+    await TransitDbService.init();
+
+    // "0.0" interchange coordinates -> hasLiveCoordinates is false
+    const atIntBus = NextBusInfo(latitude: '0.0', longitude: '0.0');
+    expect(atIntBus.hasLiveCoordinates, isFalse);
+    final intPos = TransitDbService.locateBusOnRoute('147', atIntBus);
+    expect(intPos.nearestStop, isNull);
+
+    // Live coordinates near a stop on route 147
+    final route147 = TransitDbService.getBusRouteAndSchedule('147');
+    final stop3 = route147.direction1Stops[3];
+    final stop6 = route147.direction1Stops[6];
+    final liveBus = NextBusInfo(
+      latitude: stop3.lat.toString(),
+      longitude: stop3.lng.toString(),
+      load: 'SEA',
+      type: 'DD',
+      feature: 'WAB',
+    );
+    final pos = TransitDbService.locateBusOnRoute(
+      '147',
+      liveBus,
+      currentStopCode: stop6.code,
+    );
+    expect(pos.nearestStop?.code, equals(stop3.code));
+    expect(pos.stopsAway, equals(3));
+    expect(pos.distanceFromCurrentMeters, isNotNull);
+
+    // Last-bus warning: 15 minutes before weekday last bus at stop6
+    final sched =
+        TransitDbService.getStopServiceSchedule('147', stopCode: stop6.code);
+    final parts = sched.weekday.last.split(':');
+    final lastH = int.parse(parts[0]);
+    final lastM = int.parse(parts[1]);
+    // Construct a Wednesday SGT timestamp 15 minutes before lastH:lastM
+    final sgtTarget = DateTime.utc(2026, 10, 28, lastH, lastM)
+        .subtract(const Duration(minutes: 15));
+    final utcTarget = sgtTarget.subtract(const Duration(hours: 8));
+
+    const probeSvc = BusArrivalService(serviceNo: '147', operator: 'SBST');
+    final warning = TransitDbService.getLastBusWarning(
+      probeSvc,
+      stopCode: stop6.code,
+      nowUtc: utcTarget,
+    );
+    expect(warning, equals('Last Bus ${sched.weekday.last}'));
+
+    // Daytime (12:00 PM SGT) -> no last-bus warning
+    final noonUtc =
+        DateTime.utc(2026, 10, 28, 12, 0).subtract(const Duration(hours: 8));
+    expect(
+      TransitDbService.getLastBusWarning(
+        probeSvc,
+        stopCode: stop6.code,
+        nowUtc: noonUtc,
+      ),
+      isNull,
+    );
+  });
+
   testWidgets('QuickBus SG app smoke test', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({});
     await FavoritesService.getFavorites();

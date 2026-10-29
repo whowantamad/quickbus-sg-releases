@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../models/bus_arrival.dart';
 import '../models/bus_stop.dart';
 import '../services/transit_db_service.dart';
 
@@ -6,6 +7,7 @@ class BusRouteSheet extends StatefulWidget {
   final String serviceNo;
   final String? currentStopCode;
   final int? initialDirection;
+  final BusArrivalService? liveService;
   final ValueChanged<BusStop> onSelectStop;
 
   const BusRouteSheet({
@@ -13,6 +15,7 @@ class BusRouteSheet extends StatefulWidget {
     required this.serviceNo,
     this.currentStopCode,
     this.initialDirection,
+    this.liveService,
     required this.onSelectStop,
   });
 
@@ -139,6 +142,14 @@ class _BusRouteSheetState extends State<BusRouteSheet> {
             ? activeStops
                 .lastIndexWhere((s) => s.code == widget.currentStopCode)
             : activeStops.indexWhere((s) => s.code == widget.currentStopCode));
+    final nextBusStopCode = widget.liveService?.nextBus != null
+        ? TransitDbService.locateBusOnRoute(
+            widget.serviceNo,
+            widget.liveService!.nextBus!,
+            currentStopCode: widget.currentStopCode,
+            loopWing: activeDir == 0 ? 1 : activeDir,
+          ).nearestStop?.code
+        : null;
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.86,
@@ -415,6 +426,9 @@ class _BusRouteSheetState extends State<BusRouteSheet> {
                   final stop = entry.value;
                   final isCurrent = stop.code == widget.currentStopCode;
                   final isAnchorCurrent = entry.key == currentStopIndex;
+                  final isNextBusHere = nextBusStopCode != null &&
+                      stop.code == nextBusStopCode &&
+                      (currentStopIndex == -1 || entry.key <= currentStopIndex);
                   final stopsAway =
                       (currentStopIndex != -1 && entry.key > currentStopIndex)
                           ? (entry.key - currentStopIndex)
@@ -551,6 +565,10 @@ class _BusRouteSheetState extends State<BusRouteSheet> {
                                 ],
                               ),
                             ),
+                            if (isNextBusHere) ...[
+                              const SizedBox(width: 6),
+                              _buildStopBadge('Next Bus', isDark, isRose: true),
+                            ],
                             if (isAnchorCurrent) ...[
                               const SizedBox(width: 6),
                               _buildStopBadge('Here', isDark, isRose: true),

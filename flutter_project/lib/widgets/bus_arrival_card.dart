@@ -36,6 +36,12 @@ class BusArrivalCard extends StatelessWidget {
       service,
       currentStopCode,
     );
+    final lastBusWarning = hasNoArrivalData
+        ? null
+        : TransitDbService.getLastBusWarning(
+            service,
+            stopCode: currentStopCode,
+          );
 
     return Card(
       elevation: 0,
@@ -175,6 +181,48 @@ class BusArrivalCard extends StatelessWidget {
                         ],
                       ),
                     ],
+                    if (lastBusWarning != null) ...[
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color:
+                              const Color(0xFFF59E0B).withValues(alpha: 0.14),
+                          borderRadius: BorderRadius.circular(5),
+                          border: Border.all(
+                            color:
+                                const Color(0xFFF59E0B).withValues(alpha: 0.4),
+                            width: 0.8,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.access_time_filled_rounded,
+                              size: 10,
+                              color: Color(0xFFF59E0B),
+                            ),
+                            const SizedBox(width: 3),
+                            Flexible(
+                              child: Text(
+                                lastBusWarning,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFFF59E0B),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -216,11 +264,24 @@ class BusArrivalCard extends StatelessWidget {
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    _buildArrivalSlot(context, service.nextBus, isFirst: true),
+                    _buildArrivalSlot(
+                      context,
+                      service.nextBus,
+                      slotLabel: '1st Bus',
+                      isFirst: true,
+                    ),
                     const SizedBox(width: 6),
-                    _buildArrivalSlot(context, service.nextBus2),
+                    _buildArrivalSlot(
+                      context,
+                      service.nextBus2,
+                      slotLabel: '2nd Bus',
+                    ),
                     const SizedBox(width: 6),
-                    _buildArrivalSlot(context, service.nextBus3),
+                    _buildArrivalSlot(
+                      context,
+                      service.nextBus3,
+                      slotLabel: '3rd Bus',
+                    ),
                   ],
                 ),
 
@@ -297,6 +358,7 @@ class BusArrivalCard extends StatelessWidget {
   Widget _buildArrivalSlot(
     BuildContext context,
     NextBusInfo? bus, {
+    required String slotLabel,
     bool isFirst = false,
   }) {
     final theme = Theme.of(context);
@@ -343,25 +405,20 @@ class BusArrivalCard extends StatelessWidget {
     final displayText = isArriving ? 'Arr' : '$mins';
 
     Color loadColor = const Color(0xFF94A3B8);
-    bool hasKnownLoad = false;
     if (bus.load == 'SEA') {
       loadColor = const Color(0xFF10B981);
-      hasKnownLoad = true;
     } else if (bus.load == 'SDA') {
       loadColor = const Color(0xFFF59E0B);
-      hasKnownLoad = true;
     } else if (bus.load == 'LSD') {
       loadColor = const Color(0xFFF43F5E);
-      hasKnownLoad = true;
     }
 
-    final defaultTextColor = isDark ? Colors.white : const Color(0xFF0F172A);
     final textWidget = Text(
       displayText,
       style: TextStyle(
         fontSize: isFirst ? 15.5 : 13.5,
         fontWeight: FontWeight.w900,
-        color: isArriving && hasKnownLoad ? loadColor : defaultTextColor,
+        color: isDark ? Colors.white : const Color(0xFF0F172A),
         fontFeatures: const [FontFeature.tabularFigures()],
         height: 1.0,
       ),
@@ -369,53 +426,383 @@ class BusArrivalCard extends StatelessWidget {
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
-      child: Container(
-        width: 48,
-        height: 48,
-        // Default neutral slot background (no color-coded tint) with color-coded bottom bar
+      child: Material(
         color: slotBg,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(top: 3, right: 4),
-              child: SizedBox(
-                height: 11,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    if (bus.isDoubleDecker)
-                      Padding(
-                        padding: const EdgeInsets.only(right: 2),
-                        child: CustomPaint(
-                          size: const Size(10, 10),
-                          painter: _DoubleDeckPainter(
+        child: InkWell(
+          onTap: () => _showNextBusModal(
+            context,
+            slotLabel: slotLabel,
+            bus: bus,
+            loadColor: loadColor,
+          ),
+          child: SizedBox(
+            width: 48,
+            height: 48,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 3, right: 4),
+                  child: SizedBox(
+                    height: 11,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        if (bus.isDoubleDecker)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 2),
+                            child: CustomPaint(
+                              size: const Size(10, 10),
+                              painter: _DoubleDeckPainter(
+                                color: isDark
+                                    ? const Color(0xFF818CF8)
+                                    : const Color(0xFF4F46E5),
+                              ),
+                            ),
+                          ),
+                        if (bus.isWheelchairAccessible)
+                          Icon(
+                            Icons.accessible_rounded,
+                            size: 10,
                             color: isDark
-                                ? const Color(0xFF818CF8)
-                                : const Color(0xFF4F46E5),
+                                ? const Color(0xFF38BDF8)
+                                : const Color(0xFF0284C7),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                isArriving ? _SubtlePulse(child: textWidget) : textWidget,
+                Container(
+                  height: 4,
+                  width: double.infinity,
+                  color: loadColor,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showNextBusModal(
+    BuildContext context, {
+    required String slotLabel,
+    required NextBusInfo bus,
+    required Color loadColor,
+  }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final mins = bus.minutesToArrival ?? 0;
+    final pos = TransitDbService.locateBusOnRoute(
+      service.serviceNo,
+      bus,
+      currentStopCode: currentStopCode,
+      loopWing: service.loopWing,
+    );
+
+    String? clockStr;
+    if (bus.estimatedArrival != null && bus.estimatedArrival!.isNotEmpty) {
+      try {
+        final sgt = DateTime.parse(bus.estimatedArrival!)
+            .toUtc()
+            .add(const Duration(hours: 8));
+        final hh = sgt.hour.toString().padLeft(2, '0');
+        final mm = sgt.minute.toString().padLeft(2, '0');
+        clockStr = '$hh:$mm';
+      } catch (_) {}
+    }
+
+    final distMeters = pos.distanceFromCurrentMeters;
+    final distLabel = distMeters == null
+        ? null
+        : distMeters < 1000
+            ? '${distMeters}m away'
+            : '${(distMeters / 1000).toStringAsFixed(1)} km away';
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF151C2E) : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header: Service badge + Slot title + ETA pill
+              Row(
+                children: [
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.white : const Color(0xFF0F172A),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      service.serviceNo,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                        color: isDark ? const Color(0xFF0F172A) : Colors.white,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          slotLabel,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
+                        Text(
+                          mins <= 0
+                              ? 'Arriving now${clockStr != null ? ' · $clockStr' : ''}'
+                              : 'In $mins min${clockStr != null ? ' · Est. $clockStr' : ''}',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.of(ctx).pop(),
+                    icon: const Icon(Icons.close_rounded, size: 20),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              // Live Position Card
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? const Color(0xFF0F172A).withValues(alpha: 0.7)
+                      : const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: isDark ? Colors.white10 : Colors.black12,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 34,
+                      height: 34,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE11D48).withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                    if (bus.isWheelchairAccessible)
-                      Icon(
-                        Icons.accessible_rounded,
-                        size: 10,
-                        color: isDark
-                            ? const Color(0xFF38BDF8)
-                            : const Color(0xFF0284C7),
+                      child: const Icon(
+                        Icons.my_location_rounded,
+                        size: 18,
+                        color: Color(0xFFE11D48),
                       ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: !bus.hasLiveCoordinates
+                          ? Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'At Interchange / Terminal',
+                                  style: TextStyle(
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Text(
+                                  'Scheduled departure — waiting to leave terminal',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            )
+                          : Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        pos.nearestStop != null
+                                            ? 'Near ${pos.nearestStop!.name}'
+                                            : 'En Route (Live GPS)',
+                                        style: const TextStyle(
+                                          fontSize: 12.5,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    if (distLabel != null) ...[
+                                      const SizedBox(width: 6),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 6,
+                                          vertical: 1.5,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFE11D48)
+                                              .withValues(alpha: 0.14),
+                                          borderRadius:
+                                              BorderRadius.circular(5),
+                                        ),
+                                        child: Text(
+                                          distLabel,
+                                          style: const TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w800,
+                                            color: Color(0xFFE11D48),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  pos.nearestStop != null
+                                      ? '${pos.nearestStop!.code} · ${pos.nearestStop!.road}${pos.stopsAway != null ? (pos.stopsAway == 0 ? ' · At this stop' : ' · ${pos.stopsAway} ${pos.stopsAway == 1 ? 'stop' : 'stops'} away') : ''}'
+                                      : (distLabel ?? 'Live telemetry active'),
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                    ),
                   ],
                 ),
               ),
-            ),
-            isArriving ? _SubtlePulse(child: textWidget) : textWidget,
-            Container(
-              height: 4,
-              width: double.infinity,
-              color: loadColor,
-            ),
-          ],
+              const SizedBox(height: 10),
+
+              // Attributes row: Crowd, Deck Type, WAB
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildAttrTile(
+                      isDark,
+                      icon: Icons.people_alt_rounded,
+                      iconColor: loadColor,
+                      label: 'Crowd',
+                      value: bus.loadLabel,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildAttrTile(
+                      isDark,
+                      icon: Icons.directions_bus_rounded,
+                      iconColor: isDark
+                          ? const Color(0xFF818CF8)
+                          : const Color(0xFF4F46E5),
+                      label: 'Bus Type',
+                      value: bus.typeLabel,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildAttrTile(
+                      isDark,
+                      icon: Icons.accessible_rounded,
+                      iconColor: bus.isWheelchairAccessible
+                          ? (isDark
+                              ? const Color(0xFF38BDF8)
+                              : const Color(0xFF0284C7))
+                          : Colors.grey,
+                      label: 'Access',
+                      value: bus.isWheelchairAccessible ? 'WAB Ready' : 'Standard',
+                    ),
+                  ),
+                ],
+              ),
+
+              if (onTap != null) ...[
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.of(ctx).pop();
+                      onTap?.call();
+                    },
+                    icon: const Icon(Icons.route_rounded, size: 16),
+                    label: const Text('View Full Route & Schedule'),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildAttrTile(
+    bool isDark, {
+    required IconData icon,
+    required Color iconColor,
+    required String label,
+    required String value,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+      decoration: BoxDecoration(
+        color: isDark
+            ? const Color(0xFF0F172A).withValues(alpha: 0.5)
+            : const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark ? Colors.white10 : Colors.black12,
         ),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, size: 16, color: iconColor),
+          const SizedBox(height: 3),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 9.5,
+              color: Colors.grey,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 1),
+          Text(
+            value,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 10.5,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -701,6 +701,169 @@ class TransitDbService {
         : 'Not In Operation';
   }
 
+  /// Returns a `'Last Bus HH:MM'` warning label when the service at [stopCode]
+  /// is currently within 30 minutes of its scheduled last bus (or within 45 minutes
+  /// when only one bus arrival slot remains). Returns `null` otherwise.
+  static String? getLastBusWarning(
+    BusArrivalService service, {
+    String? stopCode,
+    DateTime? nowUtc,
+  }) {
+    final sgtNow =
+        (nowUtc ?? DateTime.now().toUtc()).add(const Duration(hours: 8));
+    final currentMinutes = sgtNow.hour * 60 + sgtNow.minute;
+    final weekday = sgtNow.weekday;
+
+    final schedule = getStopServiceSchedule(
+      service.serviceNo,
+      stopCode: stopCode,
+      loopWing: service.loopWing,
+    );
+
+    String? activeLastStr;
+    int? activeLastMin;
+
+    if (currentMinutes < 4 * 60) {
+      final yesterdayWindow = weekday == DateTime.monday
+          ? schedule.sunday
+          : weekday == DateTime.sunday
+              ? schedule.saturday
+              : schedule.weekday;
+      final yFirst = _parseTimeToMinutes(yesterdayWindow.first);
+      final yLast = _parseTimeToMinutes(yesterdayWindow.last);
+      if (yFirst != null &&
+          yLast != null &&
+          yLast < yFirst &&
+          currentMinutes <= yLast) {
+        activeLastStr = yesterdayWindow.last;
+        activeLastMin = yLast;
+      }
+    }
+
+    if (activeLastMin == null) {
+      final todayWindow = weekday == DateTime.sunday
+          ? schedule.sunday
+          : weekday == DateTime.saturday
+              ? schedule.saturday
+              : schedule.weekday;
+      final todayFirst = _parseTimeToMinutes(todayWindow.first);
+      final todayLast = _parseTimeToMinutes(todayWindow.last);
+      if (_isWithinWindow(currentMinutes, todayFirst, todayLast)) {
+        activeLastStr = todayWindow.last;
+        activeLastMin = todayLast;
+      }
+    }
+
+    if (activeLastMin == null || activeLastStr == null) return null;
+
+    final minsUntilLast = activeLastMin >= currentMinutes
+        ? (activeLastMin - currentMinutes)
+        : (1440 - currentMinutes + activeLastMin);
+
+    final onlyOneBusLeft =
+        service.nextBus?.minutesToArrival != null &&
+        service.nextBus2?.minutesToArrival == null;
+    final threshold = onlyOneBusLeft ? 45 : 30;
+
+    if (minsUntilLast >= 0 && minsUntilLast <= threshold) {
+      return 'Last Bus $activeLastStr';
+    }
+    return null;
+  }
+
+  /// Locates an incoming bus along the service's route using its live GPS coordinates,
+  /// returning the closest route stop, how many stops upstream it is from [currentStopCode],
+  /// and the straight-line distance in meters from [currentStopCode].
+  static ({
+    BusStop? nearestStop,
+    int? stopsAway,
+    int? distanceFromCurrentMeters,
+  }) locateBusOnRoute(
+    String serviceNo,
+    NextBusInfo bus, {
+    String? currentStopCode,
+    int? loopWing,
+  }) {
+    if (!bus.hasLiveCoordinates) {
+      return (
+        nearestStop: null,
+        stopsAway: null,
+        distanceFromCurrentMeters: null,
+      );
+    }
+
+    final busLat = bus.latValue!;
+    final busLng = bus.lngValue!;
+    final currentStop = getStopByCode(currentStopCode);
+    final distFromCurrent = currentStop != null
+        ? distanceMeters(busLat, busLng, currentStop.lat, currentStop.lng)
+            .round()
+        : null;
+
+    final routeInfo = getBusRouteAndSchedule(
+      serviceNo,
+      stopCode: currentStopCode,
+      loopWing: loopWing,
+    );
+
+    List<BusStop> stops = routeInfo.direction1Stops;
+    if (routeInfo.isDualLoop) {
+      if (loopWing == 2 && routeInfo.direction2Stops != null) {
+        stops = routeInfo.direction2Stops!;
+      }
+    } else if (routeInfo.direction2Stops != null &&
+        routeInfo.direction2Stops!.isNotEmpty) {
+      final d2 = routeInfo.direction2Stops!;
+      if (bus.destinationCode != null &&
+          d2.isNotEmpty &&
+          d2.last.code == bus.destinationCode) {
+        stops = d2;
+      } else if (currentStopCode != null &&
+          !stops.any((s) => s.code == currentStopCode) &&
+          d2.any((s) => s.code == currentStopCode)) {
+        stops = d2;
+      }
+    }
+
+    if (stops.isEmpty) {
+      return (
+        nearestStop: null,
+        stopsAway: null,
+        distanceFromCurrentMeters: distFromCurrent,
+      );
+    }
+
+    final curIdx = currentStopCode != null
+        ? stops.indexWhere((s) => s.code == currentStopCode)
+        : -1;
+    final searchLimit = curIdx > 0 ? curIdx : stops.length - 1;
+
+    BusStop? bestStop;
+    int bestIdx = -1;
+    double bestDist = 1500.0;
+
+    for (var i = 0; i <= searchLimit; i++) {
+      final s = stops[i];
+      final d = distanceMeters(busLat, busLng, s.lat, s.lng);
+      if (d <= bestDist) {
+        bestDist = d;
+        bestStop = s;
+        bestIdx = i;
+      }
+    }
+
+    final stopsAway =
+        (curIdx != -1 && bestIdx != -1 && curIdx >= bestIdx)
+            ? (curIdx - bestIdx)
+            : null;
+
+    return (
+      nearestStop: bestStop,
+      stopsAway: stopsAway,
+      distanceFromCurrentMeters: distFromCurrent,
+    );
+  }
+
   static List<BusArrivalService> expandServicesForStop(
     List<BusArrivalService> rawServices,
     String stopCode,
