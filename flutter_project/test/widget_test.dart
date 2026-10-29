@@ -164,6 +164,21 @@ void main() {
     expect(route.direction2Stops!.isNotEmpty, isTrue);
     expect(route.schedule.weekday.first, isNotEmpty);
     expect(route.schedule.weekday.last, isNotEmpty);
+
+    // Direction 2 interchange (service 12 at 77009) uses boarding departure hours, not alighting terminus hours
+    final sched12 = TransitDbService.getStopServiceSchedule(
+      '12',
+      stopCode: '77009',
+      loopWing: 2,
+    );
+    expect(sched12.weekday.first, equals('05:30'));
+    expect(sched12.weekday.last, equals('23:30'));
+
+    // Peak-only supplementary service 117M reports Peak Hours Only off-peak, and 100A falls back to PM_OffPeak_Freq
+    final sched117M = TransitDbService.getStopServiceSchedule('117M');
+    expect(sched117M.offPeak, equals('Peak Hours Only'));
+    final sched100A = TransitDbService.getStopServiceSchedule('100A');
+    expect(sched100A.offPeak, equals('15 - 19 mins'));
   });
 
   test(

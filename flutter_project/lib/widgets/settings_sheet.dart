@@ -3,7 +3,7 @@ import '../services/favorites_service.dart';
 import '../services/transit_db_service.dart';
 
 class SettingsSheet extends StatefulWidget {
-  static const String appVersion = '1.0.15+16';
+  static const String appVersion = '1.0.16+17';
 
   final UserSettings settings;
   final ValueChanged<UserSettings> onSettingsUpdated;

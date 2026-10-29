@@ -1,6 +1,5 @@
-import 'dart:convert';
 import 'dart:math';
-import 'package:flutter/services.dart' show rootBundle;
+import 'sqlite_loader_web.dart' if (dart.library.io) 'sqlite_loader_io.dart';
 import '../models/bus_stop.dart';
 import '../models/bus_arrival.dart';
 
@@ -73,11 +72,33 @@ class _DualLoopMeta {
 
 class TransitDbService {
   static bool _initialized = false;
-  static String versionHash = 'v2-bundled';
+  static String versionHash = 'v4-lta';
   static List<BusStop> allStops = [];
   static Map<String, BusStop> _stopByCode = {};
   static Map<String, Map<String, dynamic>> _routes = {};
+  static Map<String, List<Map<String, dynamic>>> _servicesMeta = {};
   static Map<String, List<String>> _firstLast = {};
+
+  static final RegExp _svcNumRe = RegExp(r'^(\d+)(.*)$');
+  static final RegExp _fourDigRe = RegExp(r'^\d{4}$');
+
+  static int _compareServiceNo(String a, String b) {
+    final ma = _svcNumRe.firstMatch(a.trim());
+    final mb = _svcNumRe.firstMatch(b.trim());
+    if (ma != null && mb != null) {
+      final na = int.tryParse(ma.group(1)!) ?? 0;
+      final nb = int.tryParse(mb.group(1)!) ?? 0;
+      if (na != nb) return na.compareTo(nb);
+      final sa = ma.group(2)!.toLowerCase();
+      final sb = mb.group(2)!.toLowerCase();
+      final cmp = sa.compareTo(sb);
+      if (cmp != 0) return cmp;
+      return a.compareTo(b);
+    }
+    if (ma != null) return -1;
+    if (mb != null) return 1;
+    return a.toLowerCase().compareTo(b.toLowerCase());
+  }
 
   static const Map<String, _DualLoopMeta> _dualLoopConfig = {
     '358': _DualLoopMeta(
@@ -134,29 +155,186 @@ class TransitDbService {
   static Future<void> init() async {
     if (_initialized && allStops.isNotEmpty) return;
     try {
-      final rawJson =
-          await rootBundle.loadString('assets/sg_transit_snapshot.json');
-      final decoded = jsonDecode(rawJson) as Map<String, dynamic>;
-      versionHash = decoded['versionHash'] as String? ?? 'v2-bundled';
+      final loaded = await loadLtaSqliteTables();
+      final metaRows = loaded.meta;
+      for (final row in metaRows) {
+        if (row['key'] == 'versionHash') {
+          versionHash = (row['value'] as String?) ?? 'v4-lta';
+        }
+      }
 
-      final stopsList = decoded['stops'] as List<dynamic>? ?? [];
-      allStops = stopsList
-          .map((e) => BusStop.fromJson(e as Map<String, dynamic>))
-          .toList();
+      final stopRows = loaded.stops;
+      final svcRows = loaded.services;
+      final routeRows = loaded.routes;
+
+      _servicesMeta = {};
+      final loopDescBySvc = <String, String>{};
+      for (final s in svcRows) {
+        final svcNo = (s['ServiceNo'] ?? '').toString().trim();
+        if (svcNo.isEmpty) continue;
+        _servicesMeta.putIfAbsent(svcNo, () => []).add(s);
+        final ld = (s['LoopDesc'] ?? '').toString().trim();
+        if (ld.isNotEmpty) {
+          loopDescBySvc[svcNo] = ld;
+        }
+      }
+
+      final routesBySvcDir = <String, Map<int, List<String>>>{};
+      final stopServices = <String, Set<String>>{};
+      final maxSeqBySvcDir = <String, int>{};
+
+      for (final r in routeRows) {
+        final svcNo = (r['ServiceNo'] ?? '').toString().trim();
+        final code = (r['BusStopCode'] ?? '').toString().trim();
+        final dir = (r['Direction'] as int?) ?? 1;
+        final seq = (r['StopSequence'] as int?) ?? 0;
+        if (svcNo.isEmpty || code.isEmpty) continue;
+
+        routesBySvcDir
+            .putIfAbsent(svcNo, () => {})
+            .putIfAbsent(dir, () => [])
+            .add(code);
+        stopServices.putIfAbsent(code, () => {}).add(svcNo);
+        final key = '$svcNo:$dir';
+        final prevMax = maxSeqBySvcDir[key] ?? 0;
+        if (seq > prevMax) maxSeqBySvcDir[key] = seq;
+      }
+
+      String normTime(Object? v) {
+        final t = (v ?? '-').toString().trim();
+        return _fourDigRe.hasMatch(t) ? t : '-';
+      }
+
+      final boardingFL = <String, List<String>>{};
+      final terminusFL = <String, List<String>>{};
+
+      for (final r in routeRows) {
+        final svcNo = (r['ServiceNo'] ?? '').toString().trim();
+        final code = (r['BusStopCode'] ?? '').toString().trim();
+        final dir = (r['Direction'] as int?) ?? 1;
+        final seq = (r['StopSequence'] as int?) ?? 0;
+        if (svcNo.isEmpty || code.isEmpty) continue;
+
+        final wd1 = normTime(r['WD_FirstBus']);
+        final wd2 = normTime(r['WD_LastBus']);
+        final sat1 = normTime(r['SAT_FirstBus']);
+        final sat2 = normTime(r['SAT_LastBus']);
+        final sun1 = normTime(r['SUN_FirstBus']);
+        final sun2 = normTime(r['SUN_LastBus']);
+
+        if (wd1 != '-' ||
+            wd2 != '-' ||
+            sat1 != '-' ||
+            sat2 != '-' ||
+            sun1 != '-' ||
+            sun2 != '-') {
+          final sat1Out = sat1 == wd1 ? '=' : sat1;
+          final sat2Out = sat2 == wd2 ? '=' : sat2;
+          final sun1Out = sun1 == wd1 ? '=' : sun1;
+          final sun2Out = sun2 == wd2 ? '=' : sun2;
+          final line =
+              '$svcNo $wd1 $wd2 $sat1Out $sat2Out $sun1Out $sun2Out';
+          final maxSeq = maxSeqBySvcDir['$svcNo:$dir'] ?? 0;
+          final isTerminus = maxSeq > 1 && seq == maxSeq;
+          final targetMap = isTerminus ? terminusFL : boardingFL;
+          final list = targetMap.putIfAbsent(code, () => []);
+          if (!list.contains(line)) list.add(line);
+        }
+      }
+
+      _firstLast = {};
+      final allFLCodes = <String>{...boardingFL.keys, ...terminusFL.keys};
+      for (final code in allFLCodes) {
+        final combined = <String>[
+          ...(boardingFL[code] ?? const []),
+        ];
+        final boardingSvcs = {
+          for (final bLine in combined) bLine.split(' ').first,
+        };
+        for (final tLine in (terminusFL[code] ?? const <String>[])) {
+          final tSvc = tLine.split(' ').first;
+          if (!boardingSvcs.contains(tSvc) && !combined.contains(tLine)) {
+            combined.add(tLine);
+          }
+        }
+        combined.sort((a, b) {
+          final sa = a.split(' ').first;
+          final sb = b.split(' ').first;
+          return _compareServiceNo(sa, sb);
+        });
+        _firstLast[code] = combined;
+      }
+
+      final stopNameByCode = <String, String>{};
+      allStops = [];
+      for (final s in stopRows) {
+        final code = (s['BusStopCode'] ?? '').toString().trim();
+        if (code.isEmpty) continue;
+        final name = (s['Description'] ?? 'Bus Stop').toString().trim();
+        final road = (s['RoadName'] ?? '').toString().trim();
+        final lat = (s['Latitude'] as num?)?.toDouble() ?? 0.0;
+        final lng = (s['Longitude'] as num?)?.toDouble() ?? 0.0;
+        final svcs = (stopServices[code]?.toList() ?? <String>[])
+          ..sort(_compareServiceNo);
+        stopNameByCode[code] = name;
+        allStops.add(
+          BusStop(
+            code: code,
+            name: name.isEmpty ? 'Bus Stop' : name,
+            road: road,
+            lat: lat,
+            lng: lng,
+            services: svcs,
+          ),
+        );
+      }
       _stopByCode = {for (final s in allStops) s.code: s};
 
-      final routesMap = decoded['routes'] as Map<String, dynamic>? ?? {};
-      _routes = routesMap.map(
-        (key, value) => MapEntry(key, value as Map<String, dynamic>),
-      );
+      _routes = {};
+      for (final entry in routesBySvcDir.entries) {
+        final svcNo = entry.key;
+        final dirMap = entry.value;
+        final sortedDirs = dirMap.keys.toList()..sort();
+        var dirLists = sortedDirs
+            .map((d) => dirMap[d]!)
+            .where((l) => l.isNotEmpty)
+            .toList();
+        if (dirLists.isEmpty) continue;
 
-      final firstLastMap = decoded['firstLast'] as Map<String, dynamic>? ?? {};
-      _firstLast = firstLastMap.map(
-        (key, value) => MapEntry(
-          key,
-          (value as List<dynamic>).map((e) => e.toString()).toList(),
-        ),
-      );
+        if (dirLists.length > 1) {
+          final d1 = dirLists[0];
+          final d2 = dirLists[1];
+          if (d1.length > 2 &&
+              d2.length > 2 &&
+              d1.first == d1.last &&
+              d2.first == d2.last &&
+              d1.first == d2.first) {
+            dirLists = [d1];
+          }
+        }
+
+        final d1 = dirLists[0];
+        final originName = stopNameByCode[d1.first] ?? d1.first;
+        final destName = stopNameByCode[d1.last] ?? d1.last;
+        final isLoop =
+            dirLists.length == 1 && d1.length > 2 && d1.first == d1.last;
+        final String routeName;
+        if (isLoop) {
+          final loopTarget = loopDescBySvc[svcNo] ??
+              stopNameByCode[d1[d1.length ~/ 2]] ??
+              destName;
+          routeName = '$originName ⟲ $loopTarget';
+        } else if (dirLists.length > 1) {
+          routeName = '$originName ⇄ $destName';
+        } else {
+          routeName = '$originName → $destName';
+        }
+
+        _routes[svcNo] = {
+          'name': routeName,
+          'routes': dirLists,
+        };
+      }
 
       _initialized = true;
     } catch (_) {
@@ -356,6 +534,22 @@ class TransitDbService {
     return '${raw.substring(0, 2)}:${raw.substring(2, 4)}';
   }
 
+  static String _formatLtaFreq(String? raw, {required String fallback}) {
+    final s = (raw ?? '').trim();
+    if (s.isEmpty || s == '-') return fallback;
+    final parts = s.split('-');
+    if (parts.length == 2) {
+      final a = int.tryParse(parts[0].trim());
+      final b = int.tryParse(parts[1].trim());
+      if (a != null && b != null) {
+        return a == b ? '$a mins' : '$a - $b mins';
+      }
+    }
+    final single = int.tryParse(s);
+    if (single != null) return '$single mins';
+    return '$s mins';
+  }
+
   static BusSchedule getStopServiceSchedule(
     String serviceNo, {
     String? stopCode,
@@ -367,23 +561,48 @@ class TransitDbService {
         .hasMatch(svcNo);
     final isPeakOrShortTrip =
         RegExp(r'^(65\d|66\d|67\d)$', caseSensitive: false).hasMatch(svcNo) ||
-            RegExp(r'^\d+[ABCeTWXabcewx]$').hasMatch(svcNo);
+            RegExp(r'^\d+[ABCMeTWXabcmewx]$').hasMatch(svcNo);
 
-    final morningPeak = isPeakOrShortTrip
+    final defaultMorningPeak = isPeakOrShortTrip
         ? '8 - 15 mins'
         : isFeeder
             ? '5 - 8 mins'
             : '6 - 9 mins';
-    final eveningPeak = isPeakOrShortTrip
+    final defaultEveningPeak = isPeakOrShortTrip
         ? '8 - 15 mins'
         : isFeeder
             ? '5 - 8 mins'
             : '7 - 10 mins';
-    final offPeak = isPeakOrShortTrip
+    final defaultOffPeak = isPeakOrShortTrip
         ? 'Peak Hours Only'
         : isFeeder
             ? '8 - 12 mins'
             : '9 - 13 mins';
+
+    final metaList = _servicesMeta[svcNo];
+    final meta = (metaList != null && metaList.isNotEmpty)
+        ? ((loopWing == 2 && metaList.length > 1) ? metaList[1] : metaList[0])
+        : null;
+    final rawAmPeak = (meta?['AM_Peak_Freq'] ?? '-').toString().trim();
+    final rawPmPeak = (meta?['PM_Peak_Freq'] ?? '-').toString().trim();
+    final rawAmOff = (meta?['AM_OffPeak_Freq'] ?? '-').toString().trim();
+    final rawPmOff = (meta?['PM_OffPeak_Freq'] ?? '-').toString().trim();
+    final hasAnyFreq = (rawAmPeak.isNotEmpty && rawAmPeak != '-') ||
+        (rawPmPeak.isNotEmpty && rawPmPeak != '-') ||
+        (rawAmOff.isNotEmpty && rawAmOff != '-') ||
+        (rawPmOff.isNotEmpty && rawPmOff != '-');
+
+    final morningPeak = (rawAmPeak.isNotEmpty && rawAmPeak != '-')
+        ? _formatLtaFreq(rawAmPeak, fallback: defaultMorningPeak)
+        : (hasAnyFreq ? '—' : defaultMorningPeak);
+    final eveningPeak = (rawPmPeak.isNotEmpty && rawPmPeak != '-')
+        ? _formatLtaFreq(rawPmPeak, fallback: defaultEveningPeak)
+        : (hasAnyFreq ? '—' : defaultEveningPeak);
+    final offPeak = (rawAmOff.isNotEmpty && rawAmOff != '-')
+        ? _formatLtaFreq(rawAmOff, fallback: defaultOffPeak)
+        : (rawPmOff.isNotEmpty && rawPmOff != '-')
+            ? _formatLtaFreq(rawPmOff, fallback: defaultOffPeak)
+            : (hasAnyFreq ? 'Peak Hours Only' : defaultOffPeak);
 
     final bundled = _routes[svcNo];
     String? originCode;

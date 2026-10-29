@@ -2,6 +2,20 @@
 
 All notable changes to **QuickBus SG** are documented in this file, separated into **What's New (App)** for users and **Developer Notes (Code)** for contributors.
 
+## [1.0.16+17] - 2026-10-29
+
+### What's New (App)
+- **Updated Singapore Bus Routes & Stops (`5,211` stops, `604` routes)**: Refreshed the bundled offline transit database directly from LTA DataMall, including newly added stops and services (`861C`, `873`, `873M`, `874`).
+- **Official LTA Peak & Off-Peak Frequencies**: Route schedule cards now show official LTA DataMall morning peak, evening peak, and off-peak headway frequencies (including accurate `Peak Hours Only` indicators for peak-only supplementary services).
+- **Accurate Interchange Departure Schedules**: Fixed Direction 2 interchanges so operating hours always display boarding departure times from that interchange rather than alighting arrival times.
+
+### Developer Notes (Code)
+- `scripts/rebuild_snapshot.go`: Added standalone Go CLI tool that downloads LTA DataMall `BusStops`, `BusServices`, and `BusRoutes` in parallel, saves the exact LTA JSON schema to `sg_transit_snapshot.json`, and compiles a `VACUUM`ed SQLite3 database (`sg_transit.db`) with `PRAGMA user_version`.
+- `transit_db_service.dart`, `sqlite_loader_io.dart`, `sqlite_loader_web.dart`, `pubspec.yaml`: Replaced `assets/sg_transit_snapshot.json` with `assets/sg_transit.db` (`sqflite` on Android/Desktop via `sqlite_loader_io.dart`, pure-Dart B-tree reader on Web via `sqlite_loader_web.dart`), added `BusServices` frequency and `LoopDesc` resolution, and prioritized boarding stop schedules over alighting terminus rows.
+- `releases/`: Built `quickbus-sg-v1.0.16+17-arm-universal.apk`.
+
+---
+
 ## [1.0.15+16] - 2026-10-28
 
 ### What's New (App)
