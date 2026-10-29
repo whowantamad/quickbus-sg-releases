@@ -2,6 +2,18 @@
 
 All notable changes to **QuickBus SG** are documented in this file, separated into **What's New (App)** for users and **Developer Notes (Code)** for contributors.
 
+## [1.0.18+19] - 2026-10-29
+
+### What's New (App)
+- **Refreshed App Icon (`⚡G BUS`)**: Updated the app icon across Android and Web with a unified lightning-bolt `S`, squared geometric `G`, and bold `BUS` wordmark on the signature rose-to-coral gradient.
+
+### Developer Notes (Code)
+- `android/app/src/main/res/mipmap-*`, `web/icons/*`, `web/favicon.png`: Regenerated all legacy squircle, round, adaptive foreground, and PWA maskable icons.
+- `.gitignore`: Ignored `/icon_mockups/`.
+- `releases/`: Built `quickbus-sg-v1.0.18+19-arm-universal.apk`.
+
+---
+
 ## [1.0.17+18] - 2026-10-29
 
 ### What's New (App)
