@@ -124,19 +124,21 @@ void main() {
     expect(recents.length, equals(30));
   });
 
-  test('UserSettings serialization preserves custom auto-refresh and theme',
+  test('UserSettings serialization preserves custom auto-refresh, theme, and textScale',
       () async {
     SharedPreferences.setMockInitialValues({});
     const custom = UserSettings(
       datamallKey: 'test-key',
       autoRefreshSeconds: 15,
       themeMode: ThemeMode.dark,
+      textScale: 1.35,
     );
     await FavoritesService.saveSettings(custom);
     final loaded = await FavoritesService.getSettings();
     expect(loaded.autoRefreshSeconds, equals(15));
     expect(loaded.themeMode, equals(ThemeMode.dark));
     expect(loaded.datamallKey, equals('test-key'));
+    expect(loaded.textScale, equals(1.35));
   });
 
   test('LtaApiService tracks error messages and live status', () async {

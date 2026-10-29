@@ -272,7 +272,7 @@ class FavoritesScreenState extends State<FavoritesScreen> {
         // Tag Filter Sub-Tabs
         if (tags.length > 2)
           SizedBox(
-            height: 40,
+            height: 44,
             child: ListView.separated(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 3),
               scrollDirection: Axis.horizontal,

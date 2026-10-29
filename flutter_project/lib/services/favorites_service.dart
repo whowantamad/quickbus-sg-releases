@@ -54,22 +54,26 @@ class UserSettings {
   final String datamallKey;
   final int autoRefreshSeconds;
   final ThemeMode themeMode;
+  final double textScale;
 
   const UserSettings({
     this.datamallKey = '',
     this.autoRefreshSeconds = 30,
     this.themeMode = ThemeMode.system,
+    this.textScale = 1.0,
   });
 
   UserSettings copyWith({
     String? datamallKey,
     int? autoRefreshSeconds,
     ThemeMode? themeMode,
+    double? textScale,
   }) {
     return UserSettings(
       datamallKey: datamallKey ?? this.datamallKey,
       autoRefreshSeconds: autoRefreshSeconds ?? this.autoRefreshSeconds,
       themeMode: themeMode ?? this.themeMode,
+      textScale: textScale ?? this.textScale,
     );
   }
 
@@ -80,12 +84,15 @@ class UserSettings {
     if (themeStr == 'dark') mode = ThemeMode.dark;
 
     final savedKey = (json['datamallKey'] as String? ?? '').trim();
+    final rawScale = (json['textScale'] as num?)?.toDouble() ?? 1.0;
+    final clampedScale = rawScale.clamp(0.9, 1.5);
 
     return UserSettings(
       datamallKey:
           savedKey.isNotEmpty ? savedKey : LtaApiService.defaultAccountKey,
       autoRefreshSeconds: (json['autoRefreshSeconds'] as num?)?.toInt() ?? 30,
       themeMode: mode,
+      textScale: clampedScale,
     );
   }
 
@@ -97,6 +104,7 @@ class UserSettings {
       'datamallKey': datamallKey,
       'autoRefreshSeconds': autoRefreshSeconds,
       'theme': themeStr,
+      'textScale': textScale,
     };
   }
 }

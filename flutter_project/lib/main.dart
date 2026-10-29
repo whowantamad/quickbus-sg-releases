@@ -38,11 +38,20 @@ class _QuickBusAppState extends State<QuickBusApp> {
   @override
   Widget build(BuildContext context) {
     const primaryRose = Color(0xFFE11D48);
+    final navHeight = _settings.textScale > 1.0 ? 72.0 : 64.0;
 
     return MaterialApp(
       title: 'QuickBus SG',
       debugShowCheckedModeBanner: false,
       themeMode: _settings.themeMode,
+      builder: (context, child) {
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            textScaler: TextScaler.linear(_settings.textScale),
+          ),
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
       theme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.light,
@@ -62,7 +71,7 @@ class _QuickBusAppState extends State<QuickBusApp> {
           backgroundColor: Colors.white,
           surfaceTintColor: Colors.transparent,
           indicatorColor: const Color(0xFFFFF1F2),
-          height: 64,
+          height: navHeight,
           labelTextStyle: WidgetStateProperty.resolveWith((states) {
             final selected = states.contains(WidgetState.selected);
             return TextStyle(
@@ -101,7 +110,7 @@ class _QuickBusAppState extends State<QuickBusApp> {
           backgroundColor: const Color(0xFF0C1220),
           surfaceTintColor: Colors.transparent,
           indicatorColor: const Color(0xFF4C0519).withValues(alpha: 0.55),
-          height: 64,
+          height: navHeight,
           labelTextStyle: WidgetStateProperty.resolveWith((states) {
             final selected = states.contains(WidgetState.selected);
             return TextStyle(

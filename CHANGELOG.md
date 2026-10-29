@@ -2,6 +2,16 @@
 
 All notable changes to **QuickBus SG** are documented in this file.
 
+## [1.0.11+12] - 2026-10-28
+
+### Added & Improved
+- **App-Wide Text Size Selector (`settings_sheet.dart`, `favorites_service.dart`, `main.dart`)**:
+  - Added a 3-step `Text Size` setting (`Default` `1.0x`, `Large` `1.18x`, `Extra Large` `1.35x`) with visual `Aa` size previews in `SettingsSheet`, persisted in `UserSettings` and applied globally via `TextScaler.linear`.
+- **Prebuilt Android Release APK (`releases/`)**:
+  - Built `v1.0.11+12` universal ARM release APK.
+
+---
+
 ## [1.0.10+11] - 2026-10-27
 
 ### Added & Improved

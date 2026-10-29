@@ -3,7 +3,7 @@ import '../services/favorites_service.dart';
 import '../services/transit_db_service.dart';
 
 class SettingsSheet extends StatefulWidget {
-  static const String appVersion = '1.0.9+10';
+  static const String appVersion = '1.0.11+12';
 
   final UserSettings settings;
   final ValueChanged<UserSettings> onSettingsUpdated;
@@ -21,12 +21,14 @@ class SettingsSheet extends StatefulWidget {
 class _SettingsSheetState extends State<SettingsSheet> {
   late ThemeMode _themeMode;
   late int _autoRefresh;
+  late double _textScale;
 
   @override
   void initState() {
     super.initState();
     _themeMode = widget.settings.themeMode;
     _autoRefresh = widget.settings.autoRefreshSeconds;
+    _textScale = widget.settings.textScale;
   }
 
   Future<void> _selectTheme(ThemeMode mode) async {
@@ -35,6 +37,7 @@ class _SettingsSheetState extends State<SettingsSheet> {
       widget.settings.copyWith(
         themeMode: mode,
         autoRefreshSeconds: _autoRefresh,
+        textScale: _textScale,
       ),
     );
     widget.onSettingsUpdated(updated);
@@ -46,6 +49,19 @@ class _SettingsSheetState extends State<SettingsSheet> {
       widget.settings.copyWith(
         themeMode: _themeMode,
         autoRefreshSeconds: sec,
+        textScale: _textScale,
+      ),
+    );
+    widget.onSettingsUpdated(updated);
+  }
+
+  Future<void> _selectTextScale(double scale) async {
+    setState(() => _textScale = scale);
+    final updated = await FavoritesService.saveSettings(
+      widget.settings.copyWith(
+        themeMode: _themeMode,
+        autoRefreshSeconds: _autoRefresh,
+        textScale: scale,
       ),
     );
     widget.onSettingsUpdated(updated);
@@ -56,6 +72,7 @@ class _SettingsSheetState extends State<SettingsSheet> {
       widget.settings.copyWith(
         themeMode: _themeMode,
         autoRefreshSeconds: _autoRefresh,
+        textScale: _textScale,
       ),
     );
     widget.onSettingsUpdated(updated);
@@ -157,7 +174,72 @@ class _SettingsSheetState extends State<SettingsSheet> {
               ),
               const SizedBox(height: 18),
 
-              // 2. Auto-Refresh Interval
+              // 2. Text Size Selector
+              const Text(
+                'Text Size',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: const [
+                  (scale: 1.0, label: 'Default', previewSize: 12.0),
+                  (scale: 1.18, label: 'Large', previewSize: 14.5),
+                  (scale: 1.35, label: 'Extra Large', previewSize: 17.0),
+                ].map((opt) {
+                  final active = (_textScale - opt.scale).abs() < 0.05;
+                  return Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 3),
+                      child: InkWell(
+                        onTap: () => _selectTextScale(opt.scale),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 10,
+                            horizontal: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: active
+                                ? const Color(0xFFE11D48)
+                                : (isDark
+                                    ? const Color(0xFF0F172A)
+                                    : const Color(0xFFF1F5F9)),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Aa',
+                                textScaler: TextScaler.noScaling,
+                                style: TextStyle(
+                                  fontSize: opt.previewSize,
+                                  fontWeight: FontWeight.w800,
+                                  color: active ? Colors.white : null,
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                opt.label,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.bold,
+                                  color: active ? Colors.white : null,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 18),
+
+              // 3. Auto-Refresh Interval
               const Text(
                 'Auto-Refresh Interval',
                 style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
