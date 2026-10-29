@@ -1,186 +1,150 @@
 # Changelog
 
-All notable changes to **QuickBus SG** are documented in this file.
+All notable changes to **QuickBus SG** are documented in this file, separated into **What's New (App)** for users and **Developer Notes (Code)** for contributors.
+
+## [1.0.13+14] - 2026-10-28
+
+### What's New (App)
+- **Crowd-Colored & Pulsing `"Arr"` Indicator**: When a bus is arriving now (`Arr`), its text color now matches its seat availability (`Green` for seats available, `Amber` for standing, `Red` for limited standing) with a gentle pulse animation instead of always turning red.
+
+### Developer Notes (Code)
+- `bus_arrival_card.dart`: Updated `_buildArrivalSlot` so `isArriving` uses `loadColor` when `bus.load` is known (`SEA`/`SDA`/`LSD`) and wrapped the `"Arr"` `Text` widget in `_SubtlePulse` (`SingleTickerProviderStateMixin` + `FadeTransition`, `0.42..1.0` over `900ms`).
+- `releases/`: Built `quickbus-sg-v1.0.13+14-arm-universal.apk`.
+
+---
 
 ## [1.0.12+13] - 2026-10-28
 
-### Fixed & Improved
-- **Cross-Tab Star Sync (`favorites_service.dart`, `stop_list_item.dart`)**:
-  - Added `FavoritesService.starredNotifier` so starring or unstarring a bus stop in `BusStopDetailScreen` immediately updates the star icon on `Search` and `Nearby` stop cards.
-- **Removed Fake Simulated Arrivals (`lta_api_service.dart`, `bus_stop_detail_screen.dart`, `favorites_screen.dart`)**:
-  - Removed `_generateSimulatedArrivals` and `_stableSeed` so missing API keys return `const []` with an explicit `'LTA DataMall API key not configured'` banner instead of fake timings.
-- **Extra Large (`1.35x`) Card Overflow & Opposite-Stop Guard (`bus_arrival_card.dart`, `transit_db_service.dart`, `favorites_screen.dart`)**:
-  - Made `BusArrivalCard` 4-character service badges and `1st/2nd Visit` labels overflow-safe at `1.35x` while preserving the original `56px` badge and `48×48px` slot layout, guarded `findOppositeStop` against non-sided stop codes (`0`/`5`), and disposed dialog `TextEditingController`s.
-- **Prebuilt Android Release APK (`releases/`)**:
-  - Built `v1.0.12+13` universal ARM release APK.
+### What's New (App)
+- **Instant Star Sync Across Tabs**: Starring or unstarring a bus stop inside the bus arrival page now immediately updates its star icon on the `Search` and `Nearby` lists when you go back.
+- **Live-Only Arrival Data**: Removed offline fake/simulated bus arrival times so the app only displays real LTA DataMall arrival estimates (or `No Est. Available` / `Not In Operation`).
+- **Cleaner `Extra Large` Layout**: Fixed 4-character bus numbers (like `857A`) and `1st/2nd Visit` badges so they never wrap or overflow when `Extra Large` text size is enabled.
+
+### Developer Notes (Code)
+- `favorites_service.dart`, `stop_list_item.dart`: Added `FavoritesService.starredNotifier` (`ValueNotifier<int>`) incremented in `saveFavorites`, and subscribed `_StopListItemState` (`initState`/`didUpdateWidget`/`dispose`) to sync `_starred` from `_starredCodesCache`.
+- `lta_api_service.dart`, `bus_stop_detail_screen.dart`, `favorites_screen.dart`: Deleted `_generateSimulatedArrivals`, `_stableSeed`, and the `stopServices` parameter from `getBusArrivals`; missing `AccountKey` now sets `lastErrorMessage` and returns `const []`.
+- `bus_arrival_card.dart`, `transit_db_service.dart`, `favorites_screen.dart`, `widget_test.dart`: Added `FittedBox(fit: BoxFit.scaleDown)` on the `56px` service badge and `Flexible` on visit badges, guarded `findOppositeStop` when `!isSideA && !isSideB` (codes ending in `0`/`5`), disposed dialog `TextEditingController`s, and added `1.35x` widget tests.
 
 ---
 
 ## [1.0.11+12] - 2026-10-28
 
-### Added & Improved
-- **App-Wide Text Size Selector (`settings_sheet.dart`, `favorites_service.dart`, `main.dart`)**:
-  - Added a 3-step `Text Size` setting (`Default` `1.0x`, `Large` `1.18x`, `Extra Large` `1.35x`) with visual `Aa` size previews in `SettingsSheet`, persisted in `UserSettings` and applied globally via `TextScaler.linear`.
-- **Prebuilt Android Release APK (`releases/`)**:
-  - Built `v1.0.11+12` universal ARM release APK.
+### What's New (App)
+- **Text Size Setting**: Added a **Text Size** selector (`Default`, `Large`, `Extra Large`) with visual `Aa` previews in Settings for easier reading.
+
+### Developer Notes (Code)
+- `favorites_service.dart`, `settings_sheet.dart`, `main.dart`: Added `textScale` (`1.0`, `1.18`, `1.35`) to `UserSettings` JSON serialization, added selector chips in `SettingsSheet`, and applied `TextScaler.linear(_settings.textScale)` via `MaterialApp.builder`.
 
 ---
 
 ## [1.0.10+11] - 2026-10-27
 
-### Added & Improved
-- **Inline Starred Bus Timings & Stop Label/Tag Editor (`favorites_screen.dart`, `stop_list_item.dart`, `favorites_service.dart`)**:
-  - Added live arrival badges for starred services directly inside starred stop cards on the `Starred` tab with pull-to-refresh.
-  - Added a custom stop label and tag editor modal (`Commute`, `Home`, `Work`, `School`, or custom) via tap on the edit button or long-press.
-- **Opposite Stop Quick-Switch (`transit_db_service.dart`, `bus_stop_detail_screen.dart`)**:
-  - Added `TransitDbService.findOppositeStop` using Singapore LTA's 5-digit road-side parity convention (`1..4` $\leftrightarrow$ `6..9`) and road proximity, plus a quick-switch (`↔`) action in the stop detail `AppBar`.
-- **Route Sheet Auto-Scroll, `+N stops` Counter & Direction-Aware Schedule (`bus_route_sheet.dart`, `transit_db_service.dart`)**:
-  - Auto-scrolls to the current stop on open and direction change, badges the current stop (`Here`), and shows `+N stop(s)` on downstream stops.
-  - Selects the active direction's schedule entry (`loopWing == 2`) for bidirectional routes as well as dual-loop routes.
-- **WAB & Bus Attribute Normalization (`bus_arrival.dart`, `lta_api_service.dart`)**:
-  - Normalized `Feature`, `Load`, and `Type` fields in `NextBusInfo.fromJson` and varied `WAB`/`load`/`type` across all three simulated arrival slots.
-- **Prebuilt Android Release APK (`releases/`)**:
-  - Built `v1.0.10+11` universal ARM release APK.
+### What's New (App)
+- **Live Starred Bus Timings on `Starred` Tab**: Starred bus stops now show live arrival pills (e.g. `★ 147  2m · 9m`) directly on the `Starred` tab for any bus services you starred at that stop, with pull-down-to-refresh.
+- **Custom Stop Labels & Tags**: Tap the edit icon (or long-press a starred stop) to give it a custom name (e.g. `Home`, `Office`) and filter tag (`Commute`, `Home`, `Work`, `School`, or custom).
+- **Opposite Stop Quick-Switch (`↔`)**: Tap the swap icon in the top bar of a bus stop page to jump directly to the opposite bus stop across the road.
+- **Smarter Route Sheet**: Opening a bus route now auto-scrolls to your current stop, marks it with `Here`, shows `+N stop(s)` on upcoming stops, and updates first/last bus hours when switching directions.
+- **Accurate Wheelchair (`WAB`) Indicator**: Fixed wheelchair icon handling so it reflects actual bus feature data.
+
+### Developer Notes (Code)
+- `favorites_service.dart`, `favorites_screen.dart`, `stop_list_item.dart`: Added `updateFavorite` and `getAllStarredServices`, parallel per-stop arrival fetching in `_fetchStarredArrivals`, `_showEditFavoriteDialog`, and `starredArrivals` pills in `StopListItem`.
+- `transit_db_service.dart`, `bus_stop_detail_screen.dart`: Added `TransitDbService.findOppositeStop` using LTA 5-digit parity (`1..4` $\leftrightarrow$ `6..9`) + same-road `250m` fallback, and wired `Icons.swap_horiz_rounded` in `BusStopDetailScreen`.
+- `bus_route_sheet.dart`, `transit_db_service.dart`, `bus_arrival.dart`: Added `GlobalKey` + `Scrollable.ensureVisible` auto-scroll, downstream `+N stops` counter, direction-2 `matches[1]` selection in `getStopServiceSchedule`, and `.trim().toUpperCase()` normalization in `NextBusInfo.fromJson`.
 
 ---
 
 ## [1.0.9+10] - 2026-10-27
 
-### Added & Improved
-- **Predictive Location Engine & Location History (`favorites_service.dart`, `bus_stop.dart`, `nearby_screen.dart`)**:
-  - Removed hardcoded transit hubs and added a 100-entry rolling GPS history with spatial clustering (`300m`) that predicts starting coordinates by **weekday vs. weekend** and **time of day** ($\pm 3\text{h}$ window), prioritizing fixes recorded within the last 30 minutes and falling back to last known location or recent/starred stops.
-- **Nearby Pull-to-Refresh & On-Demand GPS Activation (`nearby_screen.dart`, `home_screen.dart`)**:
-  - Added pull-to-refresh on the Nearby stops list with a shared centered floating toast (`showAppToast`).
-  - Deferred hardware GPS activation until the `Nearby` tab is active, and prevented timed-out cached fallbacks from polluting prediction history.
-- **Prebuilt Android Release APK (`releases/`)**:
-  - Built `v1.0.9+10` universal ARM release APK.
+### What's New (App)
+- **Smart Nearby Stop Prediction**: When GPS is off or warming up, the `Nearby` tab predicts your starting area based on your routine by **weekday vs. weekend** and **time of day** (morning, afternoon, evening), or falls back to your last known location.
+- **Pull-to-Refresh on Nearby**: Pull down on the `Nearby` list anytime to refresh your GPS position.
+
+### Developer Notes (Code)
+- `favorites_service.dart`, `bus_stop.dart`, `nearby_screen.dart`, `home_screen.dart`: Removed predefined transit hubs, added 100-entry rolling `LocationRecord` history with `300m` spatial clustering and circular time-of-day/weekday scoring in `getPredictedOrLastLocation`, and gated hardware GPS requests on `NearbyScreen.isActive`.
 
 ---
 
 ## [1.0.8+9] - 2026-10-27
 
-### Added & Improved
-- **GPS & Location Permission Prompt Modals (`nearby_screen.dart`)**:
-  - Added dedicated action modals when device Location Services (GPS) are turned off or app location permissions are needed/disabled, with direct links to Android Location Settings and App Settings.
-- **Singapore-Calibrated Distance & GPS Refinement (`transit_db_service.dart`, `nearby_screen.dart`)**:
-  - Replaced spherical Haversine with a fast flat-earth Pythagorean distance calibrated for Singapore's WGS-84 latitude (`1.35°N`: `111,288 m/°` lon, `110,575 m/°` lat).
-  - Aligned transit hub coordinates with their exact interchange/station stops and added a 5-second stream refinement pass so coarse initial cell/Wi-Fi fixes refine to `< 20m` GPS accuracy.
-- **Centered Toast & Error Banner Text (`bus_stop_detail_screen.dart`, `nearby_screen.dart`)**:
-  - Centered the icon and text across the pull-to-refresh toast and error banners.
-- **Prebuilt Android Release APK (`releases/`)**:
-  - Built `v1.0.8+9` universal ARM release APK.
+### What's New (App)
+- **GPS & Permission Modals**: Clear prompt dialogs with direct shortcuts to Location Settings or App Settings when GPS is turned off or permission is denied.
+- **More Accurate Stop Distances**: Improved distance calculation for Singapore coordinates and refined GPS accuracy over a 5-second window.
+- **Centered Toast & Banner Messages**: Centered status toasts and error banners for cleaner readability.
+
+### Developer Notes (Code)
+- `transit_db_service.dart`, `nearby_screen.dart`, `bus_stop_detail_screen.dart`: Replaced spherical Haversine with flat-earth Pythagorean distance calibrated for Singapore (`1.35°N`: `111,288 m/°` lon, `110,575 m/°` lat), added `_refinePositionAccuracy` stream listener, and centered `SnackBar`/banner `Row` contents.
 
 ---
 
 ## [1.0.7+8] - 2026-10-26
 
-### Fixed
-- **GPS "Could not acquire GPS signal" (`nearby_screen.dart`)**:
-  - Replaced chained 5–6s location attempts (each timeout cancelled the native request and restarted the GPS cold start) with a single 20s high-accuracy request (40s when GPS must first be enabled), falling back to last known position.
-  - On Fused provider errors, falls back to last known position then a 20s Android LocationManager fix.
-- **Prebuilt Android Release APK (`releases/`)**:
-  - Built `v1.0.7+8` universal ARM release APK.
+### What's New (App)
+- **Reliable GPS Lock on Cold Start**: Fixed `"Could not acquire GPS signal"` errors when opening the app outdoors or enabling GPS from cold start.
+
+### Developer Notes (Code)
+- `nearby_screen.dart`: Replaced chained 5–6s location timeouts (which cancelled native GPS acquisition mid-lock) with a single 20s high-accuracy request (40s when enabling GPS), falling back to `getLastKnownPosition` and Android `LocationManager`.
 
 ---
 
 ## [1.0.6+7] - 2026-10-26
 
-### Fixed & Improved
-- **Dual-Loop Visit Routing & Arrival Separation (`bus_arrival.dart`, `transit_db_service.dart`, `lta_api_service.dart`)**:
-  - Parsed LTA DataMall `VisitNumber` (`"1"` vs `"2"`) to correctly separate arrival timings for bus services visiting an interchange twice (e.g., Bus 358 at Pasir Ris Interchange).
-  - Aligned loop wings to chronological visits (Wing 1 / West loop = Visit 1, Wing 2 / East loop = Visit 2) without inverted display order.
-- **Dual-Loop Arrival Card Visual Labels (`bus_arrival_card.dart`)**:
-  - Added dedicated `1st Visit` (muted chip) and `2nd Visit` (rose highlighted chip) badges beside the service number badge for clear destination distinction.
-- **Full Route & Dual Circuit Display in Route Sheet (`bus_route_sheet.dart`, `transit_db_service.dart`)**:
-  - Added multi-tab navigation to the Route & Schedule sheet: `All Routes (Full Circuit)`, `1st Visit · <Direction>`, and `2nd Visit · <Direction>`.
-  - Added visual sequence markers (`1st Visit`, `2nd Visit`, `Terminus`) along the stop timeline for full circuit view.
-- **Prebuilt Android Release APK (`releases/`)**:
-  - Built `v1.0.6+7` universal ARM release APK and maintained 5-APK release retention policy.
+### What's New (App)
+- **Dual-Loop `1st Visit` & `2nd Visit` Separation**: Bus services that visit an interchange twice (such as `358`, `291`, `811`, `911`) now show separate `1st Visit` and `2nd Visit` arrival cards with accurate timings for each loop wing.
+- **Full Circuit Route View**: Added `All Routes`, `1st Visit`, and `2nd Visit` tabs in the route sheet with `1st Visit`, `2nd Visit`, and `Terminus` badges along the stop list.
+
+### Developer Notes (Code)
+- `bus_arrival.dart`, `transit_db_service.dart`, `bus_arrival_card.dart`, `bus_route_sheet.dart`: Parsed LTA `VisitNumber` (`1` vs `2`), split dual-loop arrivals by visit number in `expandServicesForStop`, and added `allStops` full-circuit view in `BusRouteInfo`.
 
 ---
 
 ## [1.0.5+6] - 2026-10-26
 
-### Fixed & Improved
-- **GPS Permission & Settings Bounce Loop (`nearby_screen.dart`)**:
-  - Prevented automatic recursive navigation into Android Settings when returning to the app without granting GPS permission.
-- **Pull-to-Refresh & API Error Feedback (`bus_stop_detail_screen.dart`, `lta_api_service.dart`)**:
-  - Displayed honest error indicators and toasts on network timeouts or HTTP 401/403/500 responses instead of false success toasts.
-- **Resource & Battery Optimization (`bus_stop_detail_screen.dart`)**:
-  - Halted idle 1-second countdown ticker when auto-refresh is turned off, preventing redundant background widget rebuilds.
-- **Settings Sheet Immediate Persistence (`settings_sheet.dart`)**:
-  - Immediately persisted auto-refresh interval selection on tap to ensure choices are retained when closing via the header X button.
-- **Bus Route Return Direction Toggle (`bus_route_sheet.dart`)**:
-  - Added direction toggle chips in the route detail bottom sheet to view stops and schedules for both outbound and return journeys.
-- **Search Performance (`search_screen.dart`)**:
-  - Added a 150ms debounce before executing string queries across all 5,208 bus stops.
-- **Code Cleanliness & Automated Tests (`widget_test.dart`, `models/`)**:
-  - Removed dead model boilerplate (`NextBusInfo.copyWith`, `BusStop.toJson`) and expanded test suite coverage to 7 passing tests.
-- **Prebuilt Android Release APK (`releases/`)**:
-  - Added `v1.0.5+6` universal ARM release APK.
+### What's New (App)
+- **Return Direction Toggle in Route Sheet**: Switch between outbound and return directions when viewing a bus route.
+- **Honest Network Error Feedback**: Pull-to-refresh now shows clear error messages when offline or when the LTA API times out.
+- **Better Battery Life & Faster Search**: Stopped background countdown timers when auto-refresh is `Off` and smoothed stop search typing.
+
+### Developer Notes (Code)
+- `nearby_screen.dart`, `bus_stop_detail_screen.dart`, `lta_api_service.dart`, `settings_sheet.dart`, `bus_route_sheet.dart`, `search_screen.dart`: Removed recursive settings bounce on permission denial, exposed `lastErrorMessage` on `LtaApiService`, halted `_tickerTimer` when `autoRefreshSeconds == 0`, added 150ms search debounce, and persisted settings immediately on tap.
 
 ---
 
 ## [1.0.3+4] - 2026-10-25
 
-### Added & Changed
-- **Auto-Refresh Countdown & Pull-to-Refresh Toast (`bus_stop_detail_screen.dart`)**:
-  - Added a subtle right-aligned `"Updating in Xs"` countdown timer above the bus arrivals list.
-  - Added a floating confirmation toast (`"Arrivals up to date · Live LTA DataMall"` / `"Arrivals updated · Offline Schedule Sim"`) when pulling down to refresh.
-- **Arrival Parsing & Simulation Fixes (`lta_api_service.dart`, `bus_arrival.dart`)**:
-  - Removed the artificial 1-in-9 `"No Est. Available"` simulation drop and replaced platform-dependent `.hashCode` with a deterministic cross-platform hash.
-  - Hardened JSON parsing in `BusArrivalService.fromJson` and `NextBusInfo.fromJson` using safe `.toString()` conversions.
-  - Separated `flutter_project/.env` and `flutter_project/.env.example` into independent files so `.env.example` never overwrites `.env`.
-- **Prebuilt Android Release APKs (`releases/`)**:
-  - Added `v1.0.3` APKs (`arm64-v8a`, `armeabi-v7a`, and combined ARM) alongside preserved `v1.0.2`, `v1.0.1`, and `v1.0.0` APKs.
+### What's New (App)
+- **Auto-Refresh Countdown & Refresh Toast**: Added an `"Updating in Xs"` countdown above the arrivals list and a confirmation toast on pull-to-refresh.
+
+### Developer Notes (Code)
+- `bus_stop_detail_screen.dart`, `lta_api_service.dart`, `bus_arrival.dart`: Added 1-second countdown ticker, hardened `.fromJson` string conversions, and separated `.env` from `.env.example`.
 
 ---
 
 ## [1.0.2+3] - 2026-10-25
 
-### Changed
-- **App Launcher Icon & Brand Logo (`android/app/src/main/res/mipmap-*/ic_launcher.png`, `home_screen.dart`, `web/`)**:
-  - Replaced default Flutter launcher icons with the official QuickBus SG lightning-bolt + `G` icon from `public/icon.svg` across all Android mipmap densities (`mdpi` through `xxxhdpi`) and web icons.
-  - Updated the in-app header brand icon to render the exact SVG vector path from `public/icon.svg`.
-- **Bus Service Arrival Cards (`transit_db_service.dart`, `bus_arrival_card.dart`)**:
-  - Displayed the `→ <Road Name>` direction label **only** when a bus service visits the bus stop twice in two directions/loops (e.g., Bus `358` and `359` East/West loops at Pasir Ris Interchange), keeping single-visit bus service cards clean and compact.
-- **Prebuilt Android Release APKs (`releases/`)**:
-  - Added `v1.0.2` APKs (`arm64-v8a`, `armeabi-v7a`, and combined ARM) alongside preserved `v1.0.1` and `v1.0.0` APKs.
+### What's New (App)
+- **Official QuickBus SG Icon**: Updated the Android home screen icon and in-app header logo.
+- **Cleaner Single-Direction Bus Cards**: Hid redundant road direction subtitles on buses that only visit a stop once.
+
+### Developer Notes (Code)
+- `home_screen.dart`, `transit_db_service.dart`, `bus_arrival_card.dart`, `android/app/src/main/res/mipmap-*`: Added `_QuickBusLogoPainter` matching `public/icon.svg` and restricted `resolveDirectionLabel` to dual-visit stops.
 
 ---
 
 ## [1.0.1+2] - 2026-10-25
 
-### Changed
-- **MRT Map Tab (`mrt_map_screen.dart`)**:
-  - Replaced station list with the full official LTA Singapore Rail System Map image (`assets/mrt-map.png`).
-  - Removed floating zoom buttons in favor of native pinch-to-zoom, drag/pan, and animated double-tap zoom (`2.5x` toggle).
-- **Bottom Navigation Bar (`main.dart`, `home_screen.dart`)**:
-  - Removed Material 3 brown surface tinting (`surfaceTintColor: Colors.transparent`) and matched the React navigation bar colors (`#FFFFFF` light / `#0C1220` dark background, `#FFF1F2` / `#4C0519` active pill, and `#E11D48` / `#FB7185` active accents).
-- **Settings Sheet (`settings_sheet.dart`)**:
-  - Removed the LTA DataMall AccountKey input field (now managed exclusively via `.env`) and in-app changelog section.
-  - Moved the **Offline Transit Database** status card to the bottom below **Auto-Refresh Interval**.
-- **Prebuilt Android Release APKs (`releases/`)**:
-  - Added `v1.0.1` APKs alongside the preserved `v1.0.0` APKs.
+### What's New (App)
+- **Interactive Official MRT Map**: Pinch-to-zoom, pan, and double-tap to zoom the full Singapore Rail System map.
+- **Refined Navigation Bar & Settings**: Cleaner bottom navigation bar colors and streamlined Settings sheet.
+
+### Developer Notes (Code)
+- `mrt_map_screen.dart`, `main.dart`, `settings_sheet.dart`: Replaced station list with `InteractiveViewer` + `assets/mrt-map.png`, set `surfaceTintColor: Colors.transparent` on `NavigationBarThemeData`, and removed the in-app API key text input.
 
 ---
 
 ## [1.0.0+1] - 2026-10-25
 
-### Added
-- **Flutter Android Native App (`flutter_project/`)**:
-  - Material 3 light, dark, and system-adaptive themes (`#E11D48` primary rose palette).
-  - Bundled offline Singapore transit database (`assets/sg_transit_snapshot.json`) with **5,208+ bus stops**, **602+ bus routes**, and per-stop, per-service first/last bus operating hours.
-  - Zero-latency (`0ms`) offline-first progressive hydration for bus stop detail views.
-  - Live LTA DataMall v3 `BusArrival` API integration via `.env` (`LTA_DATAMALL_KEY`) and `--dart-define`.
-  - Dynamic bus service sorting:
-    1. Starred / favorite bus services pinned at the top
-    2. Services with active live arrival estimates
-    3. Services with `No Est. Available` or `Not In Operation` at the bottom
-  - Official LTA no-arrival advisements distinguishing scheduled operating hours (`Not In Operation`) from temporary GPS/telemetry gaps (`No Est. Available`).
-  - Custom 2-layer Double Decker badge and neutral arrival slots with load-colored bottom indicator bars (`SEA` Emerald, `SDA` Amber, `LSD` Rose).
-  - 4-tab navigation (**Starred**, **Nearby**, **Search**, **MRT**) with horizontal swipe-to-delete confirmation on starred and recent stops.
-- **Prebuilt Android Release APKs (`releases/`)**:
-  - `releases/quickbus-sg-v1.0.0-arm64-v8a.apk` (64-bit ARM — modern Android devices)
-  - `releases/quickbus-sg-v1.0.0-armeabi-v7a.apk` (32-bit ARM — legacy Android devices)
-  - `releases/quickbus-sg-v1.0.0-arm-universal.apk` (Combined `arm64-v8a` + `armeabi-v7a` APK)
+### What's New (App)
+- **Initial Release of QuickBus SG**: Fast, minimalist Singapore bus arrival app with **Starred**, **Nearby**, **Search**, and **MRT** tabs, Material 3 light/dark themes, double-decker & wheelchair indicators, crowd-level bars, and offline access to all **5,208+ bus stops** and **602+ bus routes**.
+
+### Developer Notes (Code)
+- `flutter_project/`: Initial Flutter Android & Web architecture with bundled `assets/sg_transit_snapshot.json` (`TransitDbService`), LTA DataMall v3 `BusArrival` client (`LtaApiService`), `SharedPreferences` persistence (`FavoritesService`), and prebuilt ARM release APKs in `releases/`.

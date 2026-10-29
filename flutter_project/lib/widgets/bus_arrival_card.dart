@@ -343,13 +343,29 @@ class BusArrivalCard extends StatelessWidget {
     final displayText = isArriving ? 'Arr' : '$mins';
 
     Color loadColor = const Color(0xFF94A3B8);
+    bool hasKnownLoad = false;
     if (bus.load == 'SEA') {
       loadColor = const Color(0xFF10B981);
+      hasKnownLoad = true;
     } else if (bus.load == 'SDA') {
       loadColor = const Color(0xFFF59E0B);
+      hasKnownLoad = true;
     } else if (bus.load == 'LSD') {
       loadColor = const Color(0xFFF43F5E);
+      hasKnownLoad = true;
     }
+
+    final defaultTextColor = isDark ? Colors.white : const Color(0xFF0F172A);
+    final textWidget = Text(
+      displayText,
+      style: TextStyle(
+        fontSize: isFirst ? 15.5 : 13.5,
+        fontWeight: FontWeight.w900,
+        color: isArriving && hasKnownLoad ? loadColor : defaultTextColor,
+        fontFeatures: const [FontFeature.tabularFigures()],
+        height: 1.0,
+      ),
+    );
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
@@ -392,18 +408,7 @@ class BusArrivalCard extends StatelessWidget {
                 ),
               ),
             ),
-            Text(
-              displayText,
-              style: TextStyle(
-                fontSize: isFirst ? 15.5 : 13.5,
-                fontWeight: FontWeight.w900,
-                color: isArriving
-                    ? const Color(0xFFF43F5E)
-                    : (isDark ? Colors.white : const Color(0xFF0F172A)),
-                fontFeatures: const [FontFeature.tabularFigures()],
-                height: 1.0,
-              ),
-            ),
+            isArriving ? _SubtlePulse(child: textWidget) : textWidget,
             Container(
               height: 4,
               width: double.infinity,
@@ -412,6 +417,39 @@ class BusArrivalCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _SubtlePulse extends StatefulWidget {
+  final Widget child;
+
+  const _SubtlePulse({required this.child});
+
+  @override
+  State<_SubtlePulse> createState() => _SubtlePulseState();
+}
+
+class _SubtlePulseState extends State<_SubtlePulse>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 900),
+    lowerBound: 0.42,
+    upperBound: 1.0,
+  )..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _controller,
+      child: widget.child,
     );
   }
 }
