@@ -2,6 +2,19 @@
 
 All notable changes to **QuickBus SG** are documented in this file, separated into **What's New (App)** for users and **Developer Notes (Code)** for contributors.
 
+## [1.0.15+16] - 2026-10-28
+
+### What's New (App)
+- **Current-Direction Route & Schedule View**: Opening a bidirectional bus route now automatically locks to the direction that serves your current stop and hides the opposite-direction toggle, while keeping the `All Routes`, `1st Visit`, and `2nd Visit` tabs on dual-loop services.
+- **Collapsed Earlier Stops on Long Routes (`Show N earlier stops`)**: Long trunk and loop routes now start right at your incoming `Next Bus` or `Here` stop with earlier passed stops collapsed behind a single `Show N earlier stops` button, so you only see the stops ahead of you by default.
+
+### Developer Notes (Code)
+- `bus_route_sheet.dart`: Added `_resolveDirection` (resolving direction and toggle visibility in one pass from `initialDirection`, `NextBusInfo.destinationCode`, and boarding-stop membership `idx < stops.length - 1`) and `firstVisibleIndex` / `_showEarlierStops` to collapse passed stops upstream of `upstreamBusIdx` or `currentStopIndex`.
+- `transit_db_service.dart`, `widget_test.dart`: Updated `locateBusOnRoute` to resolve Wing 2 stops when `loopWing` is `null` on dual-loop routes and Direction 2 boarding stops at interchanges; added unit and widget tests.
+- `releases/`: Built `quickbus-sg-v1.0.15+16-arm-universal.apk`.
+
+---
+
 ## [1.0.14+15] - 2026-10-28
 
 ### What's New (App)

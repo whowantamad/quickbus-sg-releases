@@ -25,18 +25,25 @@ class BusRouteSheet extends StatefulWidget {
 
 class _BusRouteSheetState extends State<BusRouteSheet> {
   int? _activeDirection;
+  bool _showEarlierStops = false;
   final GlobalKey _currentStopKey = GlobalKey();
 
   @override
   void initState() {
     super.initState();
-    final routeInfo = TransitDbService.getBusRouteAndSchedule(
-      widget.serviceNo,
-      stopCode: widget.currentStopCode,
-      loopWing: widget.initialDirection,
-    );
-    _activeDirection = _resolveInitialDirection(routeInfo);
     _scrollToCurrentStop();
+  }
+
+  @override
+  void didUpdateWidget(covariant BusRouteSheet oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.serviceNo != widget.serviceNo ||
+        oldWidget.currentStopCode != widget.currentStopCode ||
+        oldWidget.initialDirection != widget.initialDirection) {
+      _activeDirection = null;
+      _showEarlierStops = false;
+      _scrollToCurrentStop();
+    }
   }
 
   void _scrollToCurrentStop() {
@@ -54,33 +61,61 @@ class _BusRouteSheetState extends State<BusRouteSheet> {
     });
   }
 
-  int _resolveInitialDirection(BusRouteInfo routeInfo) {
-    if (widget.initialDirection != null) return widget.initialDirection!;
+  ({int direction, bool showToggle}) _resolveDirection(BusRouteInfo routeInfo) {
     if (routeInfo.isDualLoop) {
+      if (widget.initialDirection != null) {
+        return (direction: widget.initialDirection!, showToggle: false);
+      }
       if (widget.currentStopCode != null) {
         final inWing1 = routeInfo.direction1Stops
             .any((s) => s.code == widget.currentStopCode);
         final inWing2 = routeInfo.direction2Stops
                 ?.any((s) => s.code == widget.currentStopCode) ??
             false;
-        if (inWing1 && !inWing2) return 1;
-        if (!inWing1 && inWing2) return 2;
+        if (inWing1 && !inWing2) return (direction: 1, showToggle: false);
+        if (!inWing1 && inWing2) return (direction: 2, showToggle: false);
       }
-      return 0; // Show all routes by default
+      return (direction: 0, showToggle: false);
     }
-    if (widget.currentStopCode != null &&
-        routeInfo.direction2Stops != null &&
-        routeInfo.direction2Stops!.isNotEmpty) {
-      final idx1 = routeInfo.direction1Stops
-          .indexWhere((s) => s.code == widget.currentStopCode);
-      final idx2 = routeInfo.direction2Stops!
-          .indexWhere((s) => s.code == widget.currentStopCode);
-      if ((idx2 != -1 && idx1 == -1) ||
-          (idx1 == routeInfo.direction1Stops.length - 1 && idx2 == 0)) {
-        return 2;
-      }
+
+    final d2 = routeInfo.direction2Stops;
+    if (d2 == null || d2.isEmpty) {
+      return (direction: 1, showToggle: false);
     }
-    return 1;
+    if (widget.initialDirection != null) {
+      return (direction: widget.initialDirection!, showToggle: false);
+    }
+
+    final destCode = widget.liveService?.nextBus?.destinationCode ?? '';
+    final d1Last = routeInfo.direction1Stops.isNotEmpty
+        ? routeInfo.direction1Stops.last.code
+        : '';
+    final d2Last = d2.last.code;
+    if (destCode.isNotEmpty && d1Last != d2Last) {
+      if (destCode == d2Last) return (direction: 2, showToggle: false);
+      if (destCode == d1Last) return (direction: 1, showToggle: false);
+    }
+
+    if (widget.currentStopCode == null) {
+      return (direction: 1, showToggle: true);
+    }
+
+    final idx1 = routeInfo.direction1Stops
+        .indexWhere((s) => s.code == widget.currentStopCode);
+    final idx2 = d2.indexWhere((s) => s.code == widget.currentStopCode);
+    final inDir1Boarding =
+        idx1 != -1 && idx1 < routeInfo.direction1Stops.length - 1;
+    final inDir2Boarding = idx2 != -1 && idx2 < d2.length - 1;
+    if (inDir2Boarding && !inDir1Boarding) {
+      return (direction: 2, showToggle: false);
+    }
+    if (inDir1Boarding && !inDir2Boarding) {
+      return (direction: 1, showToggle: false);
+    }
+    return (
+      direction: (idx2 != -1 && idx1 == -1) ? 2 : 1,
+      showToggle: inDir1Boarding && inDir2Boarding,
+    );
   }
 
   @override
@@ -93,9 +128,9 @@ class _BusRouteSheetState extends State<BusRouteSheet> {
       stopCode: widget.currentStopCode,
       loopWing: widget.initialDirection,
     );
-    final activeDir = _activeDirection ?? _resolveInitialDirection(routeInfo);
-    final hasTwoDirections = routeInfo.direction2Stops != null &&
-        routeInfo.direction2Stops!.isNotEmpty;
+    final resolved = _resolveDirection(routeInfo);
+    final activeDir = _activeDirection ?? resolved.direction;
+    final showDirectionToggle = resolved.showToggle;
     final activeStops = routeInfo.isDualLoop
         ? (activeDir == 0
             ? (routeInfo.allStops ?? routeInfo.direction1Stops)
@@ -150,6 +185,25 @@ class _BusRouteSheetState extends State<BusRouteSheet> {
             loopWing: activeDir == 0 ? 1 : activeDir,
           ).nearestStop?.code
         : null;
+    int? upstreamBusIdx;
+    if (nextBusStopCode != null && activeStops.isNotEmpty) {
+      final searchStart =
+          currentStopIndex != -1 ? currentStopIndex : activeStops.length - 1;
+      for (var i = searchStart; i >= 0; i--) {
+        if (activeStops[i].code == nextBusStopCode) {
+          upstreamBusIdx = i;
+          break;
+        }
+      }
+    }
+    final firstVisibleIndex = currentStopIndex > 0
+        ? ((upstreamBusIdx != null && upstreamBusIdx < currentStopIndex)
+            ? upstreamBusIdx
+            : currentStopIndex)
+        : 0;
+    final visibleEntries = (!_showEarlierStops && firstVisibleIndex > 0)
+        ? activeStops.asMap().entries.skip(firstVisibleIndex)
+        : activeStops.asMap().entries;
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.86,
@@ -294,7 +348,7 @@ class _BusRouteSheetState extends State<BusRouteSheet> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                ] else if (hasTwoDirections) ...[
+                ] else if (showDirectionToggle) ...[
                   Row(
                     children: [
                       _buildDirectionChip(
@@ -421,21 +475,73 @@ class _BusRouteSheetState extends State<BusRouteSheet> {
                 ),
                 const SizedBox(height: 10),
 
+                // Collapse / Expand Passed Stops Toggle
+                if (firstVisibleIndex > 0) ...[
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(10),
+                      onTap: () => setState(
+                          () => _showEarlierStops = !_showEarlierStops),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? const Color(0xFF0F172A).withValues(alpha: 0.6)
+                              : const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: isDark ? Colors.white10 : Colors.black12,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              _showEarlierStops
+                                  ? Icons.expand_less_rounded
+                                  : Icons.expand_more_rounded,
+                              size: 16,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              _showEarlierStops
+                                  ? 'Hide $firstVisibleIndex earlier ${firstVisibleIndex == 1 ? 'stop' : 'stops'}'
+                                  : 'Show $firstVisibleIndex earlier ${firstVisibleIndex == 1 ? 'stop' : 'stops'}',
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w600,
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+
                 // Sequential Route Stop Timeline
-                ...activeStops.asMap().entries.map((entry) {
+                ...visibleEntries.map((entry) {
                   final stop = entry.value;
                   final isCurrent = stop.code == widget.currentStopCode;
                   final isAnchorCurrent = entry.key == currentStopIndex;
-                  final isNextBusHere = nextBusStopCode != null &&
-                      stop.code == nextBusStopCode &&
-                      (currentStopIndex == -1 || entry.key <= currentStopIndex);
+                  final isNextBusHere =
+                      upstreamBusIdx != null && entry.key == upstreamBusIdx;
                   final stopsAway =
                       (currentStopIndex != -1 && entry.key > currentStopIndex)
                           ? (entry.key - currentStopIndex)
                           : null;
 
                   return Container(
-                    key: isAnchorCurrent ? _currentStopKey : null,
+                    key: (isAnchorCurrent &&
+                            (currentStopIndex - firstVisibleIndex) > 2)
+                        ? _currentStopKey
+                        : null,
                     margin: const EdgeInsets.only(bottom: 6),
                     decoration: BoxDecoration(
                       color: isCurrent
@@ -609,7 +715,10 @@ class _BusRouteSheetState extends State<BusRouteSheet> {
   }) {
     final chip = InkWell(
       onTap: () {
-        setState(() => _activeDirection = direction);
+        setState(() {
+          _activeDirection = direction;
+          _showEarlierStops = false;
+        });
         _scrollToCurrentStop();
       },
       borderRadius: BorderRadius.circular(12),

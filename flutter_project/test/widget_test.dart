@@ -8,6 +8,7 @@ import 'package:quickbus_sg/services/favorites_service.dart';
 import 'package:quickbus_sg/services/lta_api_service.dart';
 import 'package:quickbus_sg/services/transit_db_service.dart';
 import 'package:quickbus_sg/widgets/bus_arrival_card.dart';
+import 'package:quickbus_sg/widgets/bus_route_sheet.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -418,6 +419,21 @@ void main() {
     expect(pos.stopsAway, equals(3));
     expect(pos.distanceFromCurrentMeters, isNotNull);
 
+    // Dual-loop Wing 2 mid-route stop with loopWing: null resolves Wing 2 stopsAway
+    final route358 = TransitDbService.getBusRouteAndSchedule('358');
+    final w2Stop2 = route358.direction2Stops![2];
+    final w2Stop5 = route358.direction2Stops![5];
+    final w2Pos = TransitDbService.locateBusOnRoute(
+      '358',
+      NextBusInfo(
+        latitude: w2Stop2.lat.toString(),
+        longitude: w2Stop2.lng.toString(),
+      ),
+      currentStopCode: w2Stop5.code,
+    );
+    expect(w2Pos.nearestStop?.code, equals(w2Stop2.code));
+    expect(w2Pos.stopsAway, equals(3));
+
     // Last-bus warning: 15 minutes before weekday last bus at stop6
     final sched =
         TransitDbService.getStopServiceSchedule('147', stopCode: stop6.code);
@@ -448,6 +464,62 @@ void main() {
       ),
       isNull,
     );
+  });
+
+  testWidgets(
+      'BusRouteSheet locks bidirectional route to current direction, collapses earlier stops, and keeps dual-loop tabs',
+      (WidgetTester tester) async {
+    await TransitDbService.init();
+
+    final route147 = TransitDbService.getBusRouteAndSchedule('147');
+    final dir2Stops = route147.direction2Stops!;
+    final currentStop = dir2Stops[5];
+    final firstDir2Stop = dir2Stops[0];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: BusRouteSheet(
+            serviceNo: '147',
+            currentStopCode: currentStop.code,
+            onSelectStop: (_) {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Direction toggle chips are hidden because currentStop belongs only to Direction 2
+    expect(find.text('To ${route147.direction1Name}'), findsNothing);
+    // 5 earlier stops are collapsed by default
+    expect(find.text('Show 5 earlier stops'), findsOneWidget);
+    expect(find.text(firstDir2Stop.code), findsNothing);
+    expect(find.text(currentStop.code), findsOneWidget);
+
+    // Expanding shows the earlier stops
+    await tester.tap(find.text('Show 5 earlier stops'));
+    await tester.pumpAndSettle();
+    expect(find.text('Hide 5 earlier stops'), findsOneWidget);
+    expect(find.text(firstDir2Stop.code), findsOneWidget);
+
+    // Dual-loop service 358 keeps All Routes, 1st Visit, and 2nd Visit chips
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: BusRouteSheet(
+            key: const ValueKey('358'),
+            serviceNo: '358',
+            currentStopCode: '77009',
+            initialDirection: 1,
+            onSelectStop: (_) {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.textContaining('All Routes'), findsOneWidget);
+    expect(find.textContaining('1st Visit ·'), findsOneWidget);
+    expect(find.textContaining('2nd Visit ·'), findsOneWidget);
   });
 
   testWidgets('QuickBus SG app smoke test', (WidgetTester tester) async {

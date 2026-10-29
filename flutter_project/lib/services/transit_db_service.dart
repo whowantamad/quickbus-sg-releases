@@ -807,21 +807,29 @@ class TransitDbService {
     );
 
     List<BusStop> stops = routeInfo.direction1Stops;
-    if (routeInfo.isDualLoop) {
-      if (loopWing == 2 && routeInfo.direction2Stops != null) {
-        stops = routeInfo.direction2Stops!;
-      }
-    } else if (routeInfo.direction2Stops != null &&
-        routeInfo.direction2Stops!.isNotEmpty) {
-      final d2 = routeInfo.direction2Stops!;
-      if (bus.destinationCode != null &&
-          d2.isNotEmpty &&
-          d2.last.code == bus.destinationCode) {
+    final d2 = routeInfo.direction2Stops;
+    if (d2 != null && d2.isNotEmpty) {
+      if (loopWing == 2) {
         stops = d2;
-      } else if (currentStopCode != null &&
-          !stops.any((s) => s.code == currentStopCode) &&
-          d2.any((s) => s.code == currentStopCode)) {
+      } else if (routeInfo.isDualLoop) {
+        if (loopWing == null &&
+            currentStopCode != null &&
+            !stops.any((s) => s.code == currentStopCode) &&
+            d2.any((s) => s.code == currentStopCode)) {
+          stops = d2;
+        }
+      } else if (bus.destinationCode != null &&
+          d2.last.code == bus.destinationCode &&
+          (stops.isEmpty || stops.last.code != bus.destinationCode)) {
         stops = d2;
+      } else if (currentStopCode != null) {
+        final idx1 = stops.indexWhere((s) => s.code == currentStopCode);
+        final idx2 = d2.indexWhere((s) => s.code == currentStopCode);
+        final inDir1Boarding = idx1 != -1 && idx1 < stops.length - 1;
+        final inDir2Boarding = idx2 != -1 && idx2 < d2.length - 1;
+        if ((inDir2Boarding && !inDir1Boarding) || (idx2 != -1 && idx1 == -1)) {
+          stops = d2;
+        }
       }
     }
 
