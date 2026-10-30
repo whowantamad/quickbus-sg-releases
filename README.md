@@ -1,6 +1,6 @@
 # <img src="./icon.png" width="36" height="36" align="top" /> QuickBus SG — Android Releases
 
-**Latest Release:** `v1.0.20` (2026-10-29)
+**Latest Release:** `v1.0.22` (2026-10-29)
 
 Minimalist, high-speed Singapore Bus Arrival & Transit app powered by **LTA DataMall v3** and a complete bundled offline Singapore transit SQLite3 database (`5,211` bus stops and `604` bus routes).
 
@@ -12,11 +12,11 @@ All builds are **Universal ARM APKs** (`arm64-v8a` + `armeabi-v7a`) compatible w
 
 | Version | APK File | Date | Status |
 | :--- | :--- | :--- | :--- |
-| **`v1.0.20`** | [**`quickbus-sg-v1.0.20-arm-universal.apk`**](./quickbus-sg-v1.0.20-arm-universal.apk) | 2026-10-29 | **Latest** |
+| **`v1.0.22`** | [**`quickbus-sg-v1.0.22-arm-universal.apk`**](./quickbus-sg-v1.0.22-arm-universal.apk) | 2026-10-29 | **Latest** |
+| `v1.0.21` | [`quickbus-sg-v1.0.21-arm-universal.apk`](./quickbus-sg-v1.0.21-arm-universal.apk) | 2026-10-29 | Previous |
+| `v1.0.20` | [`quickbus-sg-v1.0.20-arm-universal.apk`](./quickbus-sg-v1.0.20-arm-universal.apk) | 2026-10-29 | Previous |
 | `v1.0.19+20` | [`quickbus-sg-v1.0.19+20-arm-universal.apk`](./quickbus-sg-v1.0.19+20-arm-universal.apk) | 2026-10-29 | Previous |
 | `v1.0.18+19` | [`quickbus-sg-v1.0.18+19-arm-universal.apk`](./quickbus-sg-v1.0.18+19-arm-universal.apk) | 2026-10-29 | Previous |
-| `v1.0.17+18` | [`quickbus-sg-v1.0.17+18-arm-universal.apk`](./quickbus-sg-v1.0.17+18-arm-universal.apk) | 2026-10-29 | Previous |
-| `v1.0.16+17` | [`quickbus-sg-v1.0.16+17-arm-universal.apk`](./quickbus-sg-v1.0.16+17-arm-universal.apk) | 2026-10-29 | Previous |
 
 ---
 
@@ -29,12 +29,23 @@ All builds are **Universal ARM APKs** (`arm64-v8a` + `armeabi-v7a`) compatible w
 - **Smart Route Timeline & Last-Bus Warnings**: Locks bidirectional routes to your current direction, badges the incoming `Next Bus` and `Here` stop, collapses passed stops (`Show N earlier stops`), and shows an amber `Last Bus HH:MM` warning when a service is near closing.
 - **Starred Stops, Custom Tags & Live Starred Bus Pills**: Star stops and individual bus services to see live arrival pills directly on the `Starred` tab; organize stops with custom names (`Home`, `Office`) and filter tags.
 - **Opposite Stop Quick-Switch (`↔`) & Routine-Aware Nearby**: One-tap jump to the opposite stop across the road, plus GPS nearby stops with routine-based fallback by weekday/weekend and time of day.
-- **Interactive Official MRT Map**: High-resolution pinch-to-zoom and double-tap-to-zoom Singapore Rail System map.
+- **MRT Station Directory, Nearest Station & Train Schedules**: Search stations by name or code (`Bishan`, `NS17`, `DT16`), view closest station with walking distance, browse first/last train timetables per direction/day, and explore adjacent bus stops within 400m.
+- **Interactive Official MRT Map**: High-resolution pinch-to-zoom, floating zoom controls, and double-tap-to-zoom Singapore Rail System map.
 - **Customizable Experience**: Light/Dark/System themes, configurable auto-refresh intervals (`15s`, `30s`, `60s`, `Off`), and `Default` / `Large` / `Extra Large` text scaling.
 
 ---
 
 ## 📋 Release Changelog
+
+### [1.0.22] - 2026-10-29
+- **MRT Station Directory & Search**: Instant station lookup across all 142 operational Singapore MRT and LRT stations by name or station code (e.g. `Bishan`, `NS17`, `DT16`).
+- **Nearest MRT Station Pill**: Floating pill displays the closest station with walking distance estimate; seamlessly falls back to time-of-day predicted routine or last known stop when GPS is off/denied.
+- **First & Last Train Schedules**: Station detail modal shows first train timings (Mon–Sat vs Sun/PH) and daily last train timings per line and destination.
+- **Connecting Bus Stop Departures**: Direct integration listing adjacent bus stops within 400m with boarding service pills; tap any stop to open its live arrival board.
+
+### [1.0.21] - 2026-10-29
+- **Collapsible MRT Alert Pill**: Compact floating pill (`[ ⚠️ N Alerts Active (Lines) · Tap to view ▾ ]`) to save map viewing area while keeping train disruptions visible.
+- **Reactive Settings Sheet**: Real-time preferences saving without redundant manual "Save Settings" button.
 
 ### [1.0.20] - 2026-10-29
 - **Consolidated Bicycle Parking & Taxi Stand Pills**: Replaced repeating individual amenity chips with single count pills (`N Bicycle Parking ›` and `N Taxi Stand(s) ›`) for a cleaner, non-scrolling stop view.
