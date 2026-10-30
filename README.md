@@ -1,6 +1,6 @@
 # <img src="./icon.png" width="36" height="36" align="top" /> QuickBus SG — Android Releases
 
-**Latest Release:** `v1.0.18+19` (2026-10-29)
+**Latest Release:** `v1.0.19+20` (2026-10-29)
 
 Minimalist, high-speed Singapore Bus Arrival & Transit app powered by **LTA DataMall v3** and a complete bundled offline Singapore transit SQLite3 database (`5,211` bus stops and `604` bus routes).
 
@@ -12,10 +12,10 @@ All builds are **Universal ARM APKs** (`arm64-v8a` + `armeabi-v7a`) compatible w
 
 | Version | APK File | Date | Status |
 | :--- | :--- | :--- | :--- |
-| **`v1.0.18+19`** | [**`quickbus-sg-v1.0.18+19-arm-universal.apk`**](./quickbus-sg-v1.0.18+19-arm-universal.apk) | 2026-10-29 | **Latest** |
+| **`v1.0.19+20`** | [**`quickbus-sg-v1.0.19+20-arm-universal.apk`**](./quickbus-sg-v1.0.19+20-arm-universal.apk) | 2026-10-29 | **Latest** |
+| `v1.0.18+19` | [`quickbus-sg-v1.0.18+19-arm-universal.apk`](./quickbus-sg-v1.0.18+19-arm-universal.apk) | 2026-10-29 | Previous |
 | `v1.0.17+18` | [`quickbus-sg-v1.0.17+18-arm-universal.apk`](./quickbus-sg-v1.0.17+18-arm-universal.apk) | 2026-10-29 | Previous |
 | `v1.0.16+17` | [`quickbus-sg-v1.0.16+17-arm-universal.apk`](./quickbus-sg-v1.0.16+17-arm-universal.apk) | 2026-10-29 | Previous |
-| `v1.0.15+16` | [`quickbus-sg-v1.0.15+16-arm-universal.apk`](./quickbus-sg-v1.0.15+16-arm-universal.apk) | 2026-10-28 | Previous |
 | `v1.0.14+15` | [`quickbus-sg-v1.0.14+15-arm-universal.apk`](./quickbus-sg-v1.0.14+15-arm-universal.apk) | 2026-10-28 | Previous |
 
 ---
@@ -35,6 +35,11 @@ All builds are **Universal ARM APKs** (`arm64-v8a` + `armeabi-v7a`) compatible w
 ---
 
 ## 📋 Release Changelog
+
+### [1.0.19+20] - 2026-10-29
+- **Real-Time Train Service Alerts (`/TrainServiceAlerts`)**: Receive instant heads-up about Singapore train disruptions. The bottom navigation bar's MRT tab lights up with a 🔴 red notification badge for active delays or breakdowns, and a 🟡 amber badge for planned maintenance or early closure advisories. Inside the MRT tab, an alert card details affected stations, route segments, and free bridging bus activations.
+- **Nearby Stop Amenities (Bicycle Parking & Taxi Stands)**: Bus stop views now show compact amenity chips for nearby bicycle parking (with sheltered status and rack counts) and taxi stands within walking distance.
+- **Amenities Settings Toggles**: Separately toggle Bicycle Parking and Taxi Stands on or off in the Settings sheet.
 
 ### [1.0.18+19] - 2026-10-29
 - **Refreshed App Icon (`⚡G BUS`)**: Updated the app icon across Android and Web with a unified lightning-bolt `S`, squared geometric `G`, and bold `BUS` wordmark on the signature rose-to-coral gradient.
