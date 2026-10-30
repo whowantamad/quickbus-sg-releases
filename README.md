@@ -1,6 +1,6 @@
 # <img src="./icon.png" width="36" height="36" align="top" /> QuickBus SG — Android Releases
 
-**Latest Release:** `v1.0.22` (2026-10-30)
+**Latest Release:** `v1.0.23` (2026-10-30)
 
 Minimalist, high-speed Singapore Bus Arrival & Transit app powered by **LTA DataMall v3** and a complete bundled offline Singapore transit SQLite3 database (`5,211` bus stops and `604` bus routes).
 
@@ -12,11 +12,11 @@ All builds are **Universal ARM APKs** (`arm64-v8a` + `armeabi-v7a`) compatible w
 
 | Version | APK File | Date | Status |
 | :--- | :--- | :--- | :--- |
-| **`v1.0.22`** | [**`quickbus-sg-v1.0.22-arm-universal.apk`**](./quickbus-sg-v1.0.22-arm-universal.apk) | 2026-10-30 | **Latest** |
+| **`v1.0.23`** | [**`quickbus-sg-v1.0.23-arm-universal.apk`**](./quickbus-sg-v1.0.23-arm-universal.apk) | 2026-10-30 | **Latest** |
+| `v1.0.22` | [`quickbus-sg-v1.0.22-arm-universal.apk`](./quickbus-sg-v1.0.22-arm-universal.apk) | 2026-10-30 | Previous |
 | `v1.0.21` | [`quickbus-sg-v1.0.21-arm-universal.apk`](./quickbus-sg-v1.0.21-arm-universal.apk) | 2026-10-29 | Previous |
 | `v1.0.20` | [`quickbus-sg-v1.0.20-arm-universal.apk`](./quickbus-sg-v1.0.20-arm-universal.apk) | 2026-10-29 | Previous |
 | `v1.0.19+20` | [`quickbus-sg-v1.0.19+20-arm-universal.apk`](./quickbus-sg-v1.0.19+20-arm-universal.apk) | 2026-10-29 | Previous |
-| `v1.0.18+19` | [`quickbus-sg-v1.0.18+19-arm-universal.apk`](./quickbus-sg-v1.0.18+19-arm-universal.apk) | 2026-10-29 | Previous |
 
 ---
 
@@ -35,6 +35,12 @@ All builds are **Universal ARM APKs** (`arm64-v8a` + `armeabi-v7a`) compatible w
 ---
 
 ## 📋 Release Changelog
+
+### [1.0.23] - 2026-10-30
+- **Drag-and-Drop Starred Reordering**: Long press any starred bus stop card in Default mode to reorder favorites with a dynamic drag handle and live reordering.
+- **Segmented Starred Sort Pill**: Seamlessly toggle between `↕ Default` custom order and `Nearest` GPS proximity order directly in the header.
+- **Streamlined Distance Badges**: Walking distance tags (`~450m`, `~1.4km`) are positioned beside the stop name as clean text chips.
+- **MRT Map Snap-Back Bounce**: Swiping the MRT system map at normal 1.0x scale now springs and bounces back to center instead of drifting off-screen.
 
 ### [1.0.20] - 2026-10-29
 - **Consolidated Bicycle Parking & Taxi Stand Pills**: Replaced repeating individual amenity chips with single count pills (`N Bicycle Parking ›` and `N Taxi Stand(s) ›`) for a cleaner, non-scrolling stop view.
