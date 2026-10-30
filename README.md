@@ -1,6 +1,7 @@
 # <img src="./icon.png" width="36" height="36" align="top" /> QuickBus SG — Android Releases
 
-**Latest Release:** `v1.0.22` (2026-10-29)
+**Latest Stable Release:** `v1.0.21` (2026-10-29)  
+**Latest Preview / Beta:** `v1.0.22` (2026-10-29)
 
 Minimalist, high-speed Singapore Bus Arrival & Transit app powered by **LTA DataMall v3** and a complete bundled offline Singapore transit SQLite3 database (`5,211` bus stops and `604` bus routes).
 
@@ -12,8 +13,8 @@ All builds are **Universal ARM APKs** (`arm64-v8a` + `armeabi-v7a`) compatible w
 
 | Version | APK File | Date | Status |
 | :--- | :--- | :--- | :--- |
-| **`v1.0.22`** | [**`quickbus-sg-v1.0.22-arm-universal.apk`**](./quickbus-sg-v1.0.22-arm-universal.apk) | 2026-10-29 | **Latest** |
-| `v1.0.21` | [`quickbus-sg-v1.0.21-arm-universal.apk`](./quickbus-sg-v1.0.21-arm-universal.apk) | 2026-10-29 | Previous |
+| `v1.0.22` | [`quickbus-sg-v1.0.22-arm-universal.apk`](./quickbus-sg-v1.0.22-arm-universal.apk) | 2026-10-29 | **Beta** |
+| **`v1.0.21`** | [**`quickbus-sg-v1.0.21-arm-universal.apk`**](./quickbus-sg-v1.0.21-arm-universal.apk) | 2026-10-29 | **Latest Stable** |
 | `v1.0.20` | [`quickbus-sg-v1.0.20-arm-universal.apk`](./quickbus-sg-v1.0.20-arm-universal.apk) | 2026-10-29 | Previous |
 | `v1.0.19+20` | [`quickbus-sg-v1.0.19+20-arm-universal.apk`](./quickbus-sg-v1.0.19+20-arm-universal.apk) | 2026-10-29 | Previous |
 | `v1.0.18+19` | [`quickbus-sg-v1.0.18+19-arm-universal.apk`](./quickbus-sg-v1.0.18+19-arm-universal.apk) | 2026-10-29 | Previous |
