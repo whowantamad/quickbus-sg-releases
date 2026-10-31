@@ -1,6 +1,6 @@
 # <img src="./icon.png" width="36" height="36" align="top" /> QuickBus SG — Android Releases
 
-**Latest Release:** `v1.0.25` (2026-10-30)
+**Latest Release:** `v1.0.26` (2026-10-30)
 
 Minimalist, high-speed Singapore Bus Arrival & Transit app powered by **LTA DataMall v3** and a complete bundled offline Singapore transit SQLite3 database (`5,211` bus stops and `604` bus routes).
 
@@ -12,11 +12,11 @@ All builds are **Universal ARM APKs** (`arm64-v8a` + `armeabi-v7a`) compatible w
 
 | Version | APK File | Date | Status |
 | :--- | :--- | :--- | :--- |
-| **`v1.0.25`** | [**`quickbus-sg-v1.0.25-arm-universal.apk`**](./quickbus-sg-v1.0.25-arm-universal.apk) | 2026-10-30 | **Latest** |
+| **`v1.0.26`** | [**`quickbus-sg-v1.0.26-arm-universal.apk`**](./quickbus-sg-v1.0.26-arm-universal.apk) | 2026-10-30 | **Latest** |
+| `v1.0.25` | [`quickbus-sg-v1.0.25-arm-universal.apk`](./quickbus-sg-v1.0.25-arm-universal.apk) | 2026-10-30 | Previous |
 | `v1.0.24` | [`quickbus-sg-v1.0.24-arm-universal.apk`](./quickbus-sg-v1.0.24-arm-universal.apk) | 2026-10-30 | Previous |
 | `v1.0.23` | [`quickbus-sg-v1.0.23-arm-universal.apk`](./quickbus-sg-v1.0.23-arm-universal.apk) | 2026-10-30 | Previous |
 | `v1.0.22` | [`quickbus-sg-v1.0.22-arm-universal.apk`](./quickbus-sg-v1.0.22-arm-universal.apk) | 2026-10-30 | Previous |
-| `v1.0.21` | [`quickbus-sg-v1.0.21-arm-universal.apk`](./quickbus-sg-v1.0.21-arm-universal.apk) | 2026-10-29 | Previous |
 
 ---
 
@@ -35,6 +35,11 @@ All builds are **Universal ARM APKs** (`arm64-v8a` + `armeabi-v7a`) compatible w
 ---
 
 ## 📋 Release Changelog
+
+### [1.0.26] - 2026-10-30
+- **Accurate Starred Seating Availability**: Starred bus arrival pills now display individual crowd colors for both incoming buses (`Seats Available` green, `Standing Available` amber, `Limited Standing` red) matching the bus stop detail page.
+- **Subtle Starred Pill Border**: Replaced the hardcoded amber border with a clean, neutral border so the pill doesn't look like an amber warning when buses have seats available.
+- **Starred Tab Auto-Refresh**: Starred arrivals automatically refresh based on your auto-refresh settings (`15s`, `30s`, `60s`), keeping live arrivals and crowd data fresh without manual pull-to-refresh.
 
 ### [1.0.25] - 2026-10-30
 - **Nearby Tab Location Prompt (Once per Session)**: Entering the Nearby tab automatically asks to enable Location Services or grant permissions on the first visit of the session without repeatedly popping up on tab switches.
