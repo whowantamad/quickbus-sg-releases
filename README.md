@@ -1,6 +1,6 @@
 # <img src="./icon.png" width="36" height="36" align="top" /> QuickBus SG — Android Releases
 
-**Latest Release:** `v1.0.26` (2026-10-30)
+**Latest Release:** `v1.0.27` (2026-10-30)
 
 Minimalist, high-speed Singapore Bus Arrival & Transit app powered by **LTA DataMall v3** and a complete bundled offline Singapore transit SQLite3 database (`5,211` bus stops and `604` bus routes).
 
@@ -12,11 +12,11 @@ All builds are **Universal ARM APKs** (`arm64-v8a` + `armeabi-v7a`) compatible w
 
 | Version | APK File | Date | Status |
 | :--- | :--- | :--- | :--- |
-| **`v1.0.26`** | [**`quickbus-sg-v1.0.26-arm-universal.apk`**](./quickbus-sg-v1.0.26-arm-universal.apk) | 2026-10-30 | **Latest** |
+| **`v1.0.27`** | [**`quickbus-sg-v1.0.27-arm-universal.apk`**](./quickbus-sg-v1.0.27-arm-universal.apk) | 2026-10-30 | **Latest** |
+| `v1.0.26` | [`quickbus-sg-v1.0.26-arm-universal.apk`](./quickbus-sg-v1.0.26-arm-universal.apk) | 2026-10-30 | Previous |
 | `v1.0.25` | [`quickbus-sg-v1.0.25-arm-universal.apk`](./quickbus-sg-v1.0.25-arm-universal.apk) | 2026-10-30 | Previous |
 | `v1.0.24` | [`quickbus-sg-v1.0.24-arm-universal.apk`](./quickbus-sg-v1.0.24-arm-universal.apk) | 2026-10-30 | Previous |
 | `v1.0.23` | [`quickbus-sg-v1.0.23-arm-universal.apk`](./quickbus-sg-v1.0.23-arm-universal.apk) | 2026-10-30 | Previous |
-| `v1.0.22` | [`quickbus-sg-v1.0.22-arm-universal.apk`](./quickbus-sg-v1.0.22-arm-universal.apk) | 2026-10-30 | Previous |
 
 ---
 
@@ -31,10 +31,16 @@ All builds are **Universal ARM APKs** (`arm64-v8a` + `armeabi-v7a`) compatible w
 - **Opposite Stop Quick-Switch (`↔`) & Routine-Aware Nearby**: One-tap jump to the opposite stop across the road, plus GPS nearby stops with routine-based fallback by weekday/weekend and time of day.
 - **Interactive Official MRT Map**: High-resolution pinch-to-zoom and double-tap-to-zoom Singapore Rail System map.
 - **Customizable Experience**: Light/Dark/System themes, configurable auto-refresh intervals (`15s`, `30s`, `60s`, `Off`), and `Default` / `Large` / `Extra Large` text scaling.
+- **Voluntary Tip Jar**: Support independent app development directly from Settings with silent perpetual ad-free protection.
 
 ---
 
 ## 📋 Release Changelog
+
+### [1.0.27] - 2026-10-30
+- **Voluntary Tip Jar & Supporter Perks**: Added an optional Tip Jar in Settings for commuters who wish to support independent QuickBus SG development.
+- **Silent Ad Suppression**: Remote configuration capability defaults ads to off; any future remote promotions or ads are silently and permanently suppressed for app supporters.
+- **Clean Settings Experience**: Refined settings interface with zero intrusive ad copy or banner clutter.
 
 ### [1.0.26] - 2026-10-30
 - **Accurate Starred Seating Availability**: Starred bus arrival pills now display individual crowd colors for both incoming buses (`Seats Available` green, `Standing Available` amber, `Limited Standing` red) matching the bus stop detail page.
