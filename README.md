@@ -1,6 +1,6 @@
 # <img src="./icon.png" width="36" height="36" align="top" /> QuickBus SG — Android Releases
 
-**Latest Release:** `v1.0.28` (2026-11-04)
+**Latest Release:** `v1.0.29` (2026-11-04)
 
 Minimalist, high-speed Singapore Bus Arrival & Transit app powered by **LTA DataMall v3** and a complete bundled offline Singapore transit SQLite3 database (`5,211` bus stops and `604` bus routes).
 
@@ -12,11 +12,11 @@ All builds are **Universal ARM APKs** (`arm64-v8a` + `armeabi-v7a`) compatible w
 
 | Version | APK File | Date | Status |
 | :--- | :--- | :--- | :--- |
-| **`v1.0.28`** | [**`quickbus-sg-v1.0.28-arm-universal.apk`**](./quickbus-sg-v1.0.28-arm-universal.apk) | 2026-11-04 | **Latest** |
+| **`v1.0.29`** | [**`quickbus-sg-v1.0.29-arm-universal.apk`**](./quickbus-sg-v1.0.29-arm-universal.apk) | 2026-11-04 | **Latest** |
+| `v1.0.28` | [`quickbus-sg-v1.0.28-arm-universal.apk`](./quickbus-sg-v1.0.28-arm-universal.apk) | 2026-11-04 | Previous |
 | `v1.0.27` | [`quickbus-sg-v1.0.27-arm-universal.apk`](./quickbus-sg-v1.0.27-arm-universal.apk) | 2026-10-30 | Previous |
 | `v1.0.26` | [`quickbus-sg-v1.0.26-arm-universal.apk`](./quickbus-sg-v1.0.26-arm-universal.apk) | 2026-10-30 | Previous |
 | `v1.0.25` | [`quickbus-sg-v1.0.25-arm-universal.apk`](./quickbus-sg-v1.0.25-arm-universal.apk) | 2026-10-30 | Previous |
-| `v1.0.24` | [`quickbus-sg-v1.0.24-arm-universal.apk`](./quickbus-sg-v1.0.24-arm-universal.apk) | 2026-10-30 | Previous |
 
 ---
 
@@ -36,6 +36,11 @@ All builds are **Universal ARM APKs** (`arm64-v8a` + `armeabi-v7a`) compatible w
 ---
 
 ## 📋 Release Changelog
+
+### [1.0.29] - 2026-11-04
+- **Bus Service Search**: Search directly by bus service number (e.g., `147`, `857`, `358`) in the Search tab to view route cards with bus stop names and open the full route & schedule sheet in one tap.
+- **`Recent Searches` Header & `Clear` Action**: Added a `Recent Searches (N)` header with a one-tap `Clear` action and `Results (N)` counter while searching.
+- **Clean Search Empty State**: Replaced the 40 arbitrary fallback stops with a clean empty state when recent search history is empty.
 
 ### [1.0.28] - 2026-11-04
 - **Instant Starred `Nearest` Sort**: Tapping `Nearest` in the Starred tab now activates and sorts immediately using cached or predicted location while refining with live GPS in the background.
