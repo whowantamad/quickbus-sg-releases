@@ -1,6 +1,6 @@
 # <img src="./icon.png" width="36" height="36" align="top" /> QuickBus SG — Android Releases
 
-**Latest Release:** `v1.0.30` (2026-11-06)
+**Latest Release:** `v1.0.31` (2026-11-06)
 
 Minimalist, high-speed Singapore Bus Arrival & Transit app powered by **LTA DataMall v3** and a complete bundled offline Singapore transit SQLite3 database (`5,211` bus stops and `604` bus routes).
 
@@ -12,11 +12,11 @@ All builds are **Universal ARM APKs** (`arm64-v8a` + `armeabi-v7a`) compatible w
 
 | Version | APK File | Date | Status |
 | :--- | :--- | :--- | :--- |
-| **`v1.0.30`** | [**`quickbus-sg-v1.0.30-arm-universal.apk`**](./quickbus-sg-v1.0.30-arm-universal.apk) | 2026-11-06 | **Latest** |
+| **`v1.0.31`** | [**`quickbus-sg-v1.0.31-arm-universal.apk`**](./quickbus-sg-v1.0.31-arm-universal.apk) | 2026-11-06 | **Latest** |
+| `v1.0.30` | [`quickbus-sg-v1.0.30-arm-universal.apk`](./quickbus-sg-v1.0.30-arm-universal.apk) | 2026-11-06 | Previous |
 | `v1.0.29` | [`quickbus-sg-v1.0.29-arm-universal.apk`](./quickbus-sg-v1.0.29-arm-universal.apk) | 2026-11-04 | Previous |
 | `v1.0.28` | [`quickbus-sg-v1.0.28-arm-universal.apk`](./quickbus-sg-v1.0.28-arm-universal.apk) | 2026-11-04 | Previous |
 | `v1.0.27` | [`quickbus-sg-v1.0.27-arm-universal.apk`](./quickbus-sg-v1.0.27-arm-universal.apk) | 2026-10-30 | Previous |
-| `v1.0.26` | [`quickbus-sg-v1.0.26-arm-universal.apk`](./quickbus-sg-v1.0.26-arm-universal.apk) | 2026-10-30 | Previous |
 
 ---
 
@@ -36,6 +36,10 @@ All builds are **Universal ARM APKs** (`arm64-v8a` + `armeabi-v7a`) compatible w
 ---
 
 ## 📋 Release Changelog
+
+### [1.0.31] - 2026-11-06
+- **Smooth Micro-Animations**: Arrival minutes slide when they change, stars pop when tapped, tabs and lists fade in, and banners grow in smoothly instead of jumping the layout.
+- **Respects Reduced Motion**: All animations switch off when the system "remove animations" setting is on.
 
 ### [1.0.30] - 2026-11-06
 - **Resilient Offline & Error Banners**: Added a multi-line `ErrorBanner` with one-tap `Retry` and cached arrival retention on Bus Stop Detail and Starred tabs so network drops never wipe out live timings on screen.
