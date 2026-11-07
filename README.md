@@ -1,6 +1,6 @@
 # <img src="./icon.png" width="36" height="36" align="top" /> QuickBus SG — Android Releases
 
-**Latest Release:** `v1.0.31` (2026-11-06)
+**Latest Release:** `v1.0.32` (2026-11-06)
 
 Minimalist, high-speed Singapore Bus Arrival & Transit app powered by **LTA DataMall v3** and a complete bundled offline Singapore transit SQLite3 database (`5,211` bus stops and `604` bus routes).
 
@@ -12,11 +12,11 @@ All builds are **Universal ARM APKs** (`arm64-v8a` + `armeabi-v7a`) compatible w
 
 | Version | APK File | Date | Status |
 | :--- | :--- | :--- | :--- |
-| **`v1.0.31`** | [**`quickbus-sg-v1.0.31-arm-universal.apk`**](./quickbus-sg-v1.0.31-arm-universal.apk) | 2026-11-06 | **Latest** |
+| **`v1.0.32`** | [**`quickbus-sg-v1.0.32-arm-universal.apk`**](./quickbus-sg-v1.0.32-arm-universal.apk) | 2026-11-06 | **Latest** |
+| `v1.0.31` | [`quickbus-sg-v1.0.31-arm-universal.apk`](./quickbus-sg-v1.0.31-arm-universal.apk) | 2026-11-06 | Previous |
 | `v1.0.30` | [`quickbus-sg-v1.0.30-arm-universal.apk`](./quickbus-sg-v1.0.30-arm-universal.apk) | 2026-11-06 | Previous |
 | `v1.0.29` | [`quickbus-sg-v1.0.29-arm-universal.apk`](./quickbus-sg-v1.0.29-arm-universal.apk) | 2026-11-04 | Previous |
 | `v1.0.28` | [`quickbus-sg-v1.0.28-arm-universal.apk`](./quickbus-sg-v1.0.28-arm-universal.apk) | 2026-11-04 | Previous |
-| `v1.0.27` | [`quickbus-sg-v1.0.27-arm-universal.apk`](./quickbus-sg-v1.0.27-arm-universal.apk) | 2026-10-30 | Previous |
 
 ---
 
@@ -36,6 +36,11 @@ All builds are **Universal ARM APKs** (`arm64-v8a` + `armeabi-v7a`) compatible w
 ---
 
 ## 📋 Release Changelog
+
+### [1.0.32] - 2026-11-06
+- **Foreground Auto-Refresh**: Returning to the app automatically refreshes live arrival timings on Bus Stop Detail and Starred tabs.
+- **Freshness & Staleness Indicator**: Shows `Updated Xs ago` alongside an amber `Stale` badge and dimmed arrival times when the last successful fetch is 60+ seconds old.
+- **Haptic Feedback, Readability & Tooltips**: Added haptics on star toggles, tab/sort switches, and pull-to-refresh; raised 9.5–10.5px labels and low-contrast grey text to 11–12px; and added tooltips to all remaining icon buttons.
 
 ### [1.0.31] - 2026-11-06
 - **Smooth Micro-Animations**: Arrival minutes slide when they change, stars pop when tapped, tabs and lists fade in, and banners grow in smoothly instead of jumping the layout.
