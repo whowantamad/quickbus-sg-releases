@@ -1,6 +1,6 @@
 # <img src="./icon.png" width="36" height="36" align="top" /> QuickBus SG — Android Releases
 
-**Latest Release:** `v1.0.32` (2026-11-06)
+**Latest Release:** `v1.0.33` (2026-11-08)
 
 Minimalist, high-speed Singapore Bus Arrival & Transit app powered by **LTA DataMall v3** and a complete bundled offline Singapore transit SQLite3 database (`5,211` bus stops and `604` bus routes).
 
@@ -12,11 +12,11 @@ All builds are **Universal ARM APKs** (`arm64-v8a` + `armeabi-v7a`) compatible w
 
 | Version | APK File | Date | Status |
 | :--- | :--- | :--- | :--- |
-| **`v1.0.32`** | [**`quickbus-sg-v1.0.32-arm-universal.apk`**](./quickbus-sg-v1.0.32-arm-universal.apk) | 2026-11-06 | **Latest** |
+| **`v1.0.33`** | [**`quickbus-sg-v1.0.33-arm-universal.apk`**](./quickbus-sg-v1.0.33-arm-universal.apk) | 2026-11-08 | **Latest** |
+| `v1.0.32` | [`quickbus-sg-v1.0.32-arm-universal.apk`](./quickbus-sg-v1.0.32-arm-universal.apk) | 2026-11-06 | Previous |
 | `v1.0.31` | [`quickbus-sg-v1.0.31-arm-universal.apk`](./quickbus-sg-v1.0.31-arm-universal.apk) | 2026-11-06 | Previous |
 | `v1.0.30` | [`quickbus-sg-v1.0.30-arm-universal.apk`](./quickbus-sg-v1.0.30-arm-universal.apk) | 2026-11-06 | Previous |
 | `v1.0.29` | [`quickbus-sg-v1.0.29-arm-universal.apk`](./quickbus-sg-v1.0.29-arm-universal.apk) | 2026-11-04 | Previous |
-| `v1.0.28` | [`quickbus-sg-v1.0.28-arm-universal.apk`](./quickbus-sg-v1.0.28-arm-universal.apk) | 2026-11-04 | Previous |
 
 ---
 
@@ -36,6 +36,12 @@ All builds are **Universal ARM APKs** (`arm64-v8a` + `armeabi-v7a`) compatible w
 ---
 
 ## 📋 Release Changelog
+
+### [1.0.33] - 2026-11-08
+- **Clean Silent Arrivals UI**: Replaced noisy countdown and updating timers with a quiet 2px progress bar while refreshing, and an amber `Stale · Nm ago` badge only when data is at least 1 minute old.
+- **Adaptive System Text Scaling**: Out-of-the-box support for Android & iOS system font sizes (clamped to 1.35x to protect transit card layouts) with adaptive bottom navigation height, while preserving in-app overrides.
+- **Per-Stop Amenities Caching**: Caches nearby bicycle parking and taxi stands in local storage for 24 hours, evicting unstarred and non-recent stops to minimize memory and disk usage.
+- **Midnight Routine Location Fix**: Time-contextual prediction now correctly labels early hours (`00:00–04:59` and `22:00–23:59`) as `Night` instead of `Morning`.
 
 ### [1.0.32] - 2026-11-06
 - **Foreground Auto-Refresh**: Returning to the app automatically refreshes live arrival timings on Bus Stop Detail and Starred tabs.
