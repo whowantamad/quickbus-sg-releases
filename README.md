@@ -1,6 +1,6 @@
 # <img src="./icon.png" width="36" height="36" align="top" /> QuickBus SG — Android Releases
 
-**Latest Release:** `v1.0.33` (2026-11-08)
+**Latest Release:** `v1.0.34` (2026-11-09)
 
 Minimalist, high-speed Singapore Bus Arrival & Transit app powered by **LTA DataMall v3** and a complete bundled offline Singapore transit SQLite3 database (`5,211` bus stops and `604` bus routes).
 
@@ -12,11 +12,11 @@ All builds are **Universal ARM APKs** (`arm64-v8a` + `armeabi-v7a`) compatible w
 
 | Version | APK File | Date | Status |
 | :--- | :--- | :--- | :--- |
-| **`v1.0.33`** | [**`quickbus-sg-v1.0.33-arm-universal.apk`**](./quickbus-sg-v1.0.33-arm-universal.apk) | 2026-11-08 | **Latest** |
+| **`v1.0.34`** | [**`quickbus-sg-v1.0.34-arm-universal.apk`**](./quickbus-sg-v1.0.34-arm-universal.apk) | 2026-11-09 | **Latest** |
+| `v1.0.33` | [`quickbus-sg-v1.0.33-arm-universal.apk`](./quickbus-sg-v1.0.33-arm-universal.apk) | 2026-11-08 | Previous |
 | `v1.0.32` | [`quickbus-sg-v1.0.32-arm-universal.apk`](./quickbus-sg-v1.0.32-arm-universal.apk) | 2026-11-06 | Previous |
 | `v1.0.31` | [`quickbus-sg-v1.0.31-arm-universal.apk`](./quickbus-sg-v1.0.31-arm-universal.apk) | 2026-11-06 | Previous |
 | `v1.0.30` | [`quickbus-sg-v1.0.30-arm-universal.apk`](./quickbus-sg-v1.0.30-arm-universal.apk) | 2026-11-06 | Previous |
-| `v1.0.29` | [`quickbus-sg-v1.0.29-arm-universal.apk`](./quickbus-sg-v1.0.29-arm-universal.apk) | 2026-11-04 | Previous |
 
 ---
 
@@ -36,6 +36,11 @@ All builds are **Universal ARM APKs** (`arm64-v8a` + `armeabi-v7a`) compatible w
 ---
 
 ## 📋 Release Changelog
+
+### [1.0.34] - 2026-11-09
+- **Tactical Radar & Directional Wayfinder**: Lightweight circular radar dial on Bus Stop Detail that points toward the bus stop using live device magnetometer heading or North-Up mode, featuring pinch-to-zoom range scaling (30m to 500m) and arrival timings sorted by earliest arrival with starred buses prioritized.
+- **Dedicated Amenity Radars**: Separated bicycle parking and taxi stands into dedicated modal sheets that plot all nearby racks and stands as tactical dots around the user when GPS is active, or around the bus stop origin when location is off.
+- **Clear Location Status Indicator**: Navigation center puck renders as a grey map puck with "Location Off" / "Bus Stop" indication when GPS is disabled, turning into a live blue triangle/puck when live GPS is acquired.
 
 ### [1.0.33] - 2026-11-08
 - **Clean Silent Arrivals UI**: Replaced noisy countdown and updating timers with a quiet 2px progress bar while refreshing, and an amber `Stale · Nm ago` badge only when data is at least 1 minute old.
